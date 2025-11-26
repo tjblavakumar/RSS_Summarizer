@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>Latest News Articles</h2>
+        {% if articles %}
+            <div class="row">
+                {% for article in articles %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ article.title[:100] }}{% if article.title|length > 100 %}...{% endif %}</h5>
+                            <p class="card-text">{{ article.summary[:150] }}{% if article.summary|length > 150 %}...{% endif %}</p>
+                            <div class="mb-2">
+                                {% if article.relevancy_score >= 90 %}
+                                    <span class="badge bg-success">{{ article.relevancy_score }}% Relevant</span>
+                                {% elif article.relevancy_score >= 80 %}
+                                    <span class="badge bg-warning">{{ article.relevancy_score }}% Relevant</span>
+                                {% else %}
+                                    <span class="badge bg-info">{{ article.relevancy_score }}% Relevant</span>
+                                {% endif %}
+                                <span class="badge bg-secondary">{{ article.topic.name }}</span>
+                            </div>
+                            <small class="text-muted">{{ article.feed.name }} - {{ article.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </div>
+                        <div class="card-footer">
+                            <a href="{{ article.url }}" target="_blank" class="btn btn-primary btn-sm">Read Full Article</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <h4>No articles found</h4>
+                <p>Add some RSS feeds and topics in the Admin panel, then click "Refresh News" to get started.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
