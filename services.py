@@ -13,7 +13,10 @@ import feedparser
 import requests
 from bs4 import BeautifulSoup
 import boto3
+import botocore.exceptions
 import json
+import os
+import re
 import time
 import logging
 from datetime import datetime
@@ -75,27 +78,36 @@ class AIService:
     def analyze_article(self, content, topics_text):
         prompt = f"""Analyze this article content against these topics: {topics_text}
 
-Article: {content[:2000]}
+    Article: {content[:2000]}
 
-Return ONLY a valid JSON object with no additional text: {{"relevancy_score": int (0-100), "is_relevant": bool, "summary": string}}"""
+    Return ONLY a valid JSON object with no additional text: {{"relevancy_score": int (0-100), "is_relevant": bool, "summary": string}}"""
         
         try:
+            logger.debug("Invoking model %s", self.model_id)
+            # Build the provider-specific payload. Anthropic/Claude models expect a "messages" array (role/content),
+            # while other providers may expect a single "input" string. To increase compatibility, use the messages
+            # format if the model id contains 'anthropic'. Include the provider version in plain YYYY-MM-DD format.
+            payload = {
+                "max_tokens": 500
+            }
+            if 'anthropic' in self.model_id:
+                # Anthropic models require anthropic_version field
+                anthropic_version = os.environ.get('ANTHROPIC_PROVIDER_VERSION', 'bedrock-2023-05-31')
+                payload['anthropic_version'] = anthropic_version
+                payload['messages'] = [{"role": "user", "content": prompt}]
+                logger.debug('Using Anthropic provider version: %s', anthropic_version)
+            else:
+                payload['input'] = prompt
+
+            logger.debug('AI payload prepared: %s', json.dumps({k: (v if k != 'messages' else '[... messages ...]') for k, v in payload.items()}))
             response = self.bedrock_client.invoke_model(
                 modelId=self.model_id,
                 contentType='application/json',
                 accept='application/json',
-                body=json.dumps({
-                    "anthropic_version": "bedrock-2023-06-01",
-                    "max_tokens": 500,
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ]
-                })
+                body=json.dumps(payload).encode('utf-8')
             )
             
+            logger.debug("AI invocation response metadata: %s", response.get('ResponseMetadata', {}))
             response_body = json.loads(response['body'].read())
             response_text = response_body['content'][0]['text']
             
@@ -120,7 +132,13 @@ Return ONLY a valid JSON object with no additional text: {{"relevancy_score": in
             logger.error(f"AI analysis JSON decode error: {e}")
             return {"relevancy_score": 0, "is_relevant": False, "summary": "JSON parsing failed"}
         except Exception as e:
-            logger.error(f"AI analysis error: {e}")
+            # Include the exception type and message for better diagnostics
+            # For botocore ClientError, include the error response body
+            try:
+                error_response = getattr(e, 'response', {})
+                logger.error(f"AI analysis error: {type(e).__name__}: {e}; response: {error_response}")
+            except Exception:
+                logger.error(f"AI analysis error: {type(e).__name__}: {e}")
             return {"relevancy_score": 0, "is_relevant": False, "summary": "Analysis failed"}
 
 class NewsProcessor:

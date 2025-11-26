@@ -103,3 +103,34 @@ If you encounter 429 errors, the system will log them and continue processing ot
 
 ### Database Issues
 Delete `news.db` file to reset the database if needed.
+
+## AWS Bedrock integration notes
+
+This repository includes a `services.py` integration that uses the AWS Bedrock runtime to run models from different providers (Anthropic/Claude, etc.). A few important details for working with Bedrock and provider-specific models:
+
+- Provider version formatting: For Anthropic/Claude models, the provider API version should be provided as a date string in the format YYYY-MM-DD (for example, `"2023-06-01"`) and should not include the `bedrock-` prefix (e.g., `bedrock-2023-06-01` is invalid).
+- Request body formats: Anthropic/Claude models expect a `messages` array with `role` and `content` fields. Some model providers (e.g., other LLMs) may accept an `input` string instead. `services.py` adapts the payload automatically based on the model ID (it uses `messages` if `anthropic` is in the model id, otherwise it uses `input`).
+- Body encoding: The `body` parameter passed to `bedrock_client.invoke_model` must be JSON encoded bytes: `json.dumps(payload).encode('utf-8')`.
+
+Note about Anthropic provider version: `services.py` does not set a provider-specific `anthropic_version` by default. Bedrock will use a default stable provider version when none is provided. If you must request a specific provider version, set the `ANTHROPIC_PROVIDER_VERSION` environment variable (e.g., `2023-06-01`) and the application will include it in the payload.
+
+### Local testing (no AWS calls)
+
+To validate the Bedrock payload without contacting AWS, run the included local test script that monkey-patches the bedrock client and asserts the payload structure:
+
+```powershell
+.\.venv\Scripts\activate
+python tests/test_bedrock_payload.py
+```
+
+### Real invocation
+
+If you run a real Bedrock invocation, ensure:
+- Your AWS credentials are set and have the correct permissions to call Bedrock.
+- The target model is available in the region you select.
+- You are aware of potential costs for model invocation.
+
+### Common errors
+- ValidationException: "messages: Field required" — Make sure you send `messages` (Anthropic/Claude models) instead of `input`.
+- ValidationException: "Invalid API version: bedrock-YYYY-MM-DD" — Use plain `YYYY-MM-DD` for `anthropic_version` (no `bedrock-` prefix).
+- Other errors: Use debug logs and `ResponseMetadata` for more diagnostics in `services.py`.
