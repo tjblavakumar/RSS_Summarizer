@@ -9,6 +9,9 @@ A locally deployable news aggregation system that uses AWS Bedrock Claude AI to 
 - **Per-Topic Analysis**: AI analyzes articles against all topics simultaneously with individual scores (0-100)
 - **Smart Content Extraction**: Automatically scrapes full articles when RSS descriptions are too short
 - **AWS Bedrock Integration**: Uses Amazon Nova Pro model for enhanced analysis capabilities
+- **PDF Export**: Download individual articles as formatted PDF with full content, summary, and metadata
+- **Article Management**: Delete individual articles with confirmation dialog
+- **Progress Indicators**: Real-time status messages during AI processing
 - **Admin Interface**: Left navigation panel for managing feeds and topics
 - **Auto-refresh Dashboard**: Real-time updates every 10 seconds
 - **Automatic Cleanup**: Removes articles older than 24 hours
@@ -81,9 +84,15 @@ The application will be available at `http://localhost:5000`
 
 ### 3. Process News
 - Click **"Refresh News"** on dashboard
+- Progress message appears: "Please wait. AI is working for you."
 - System fetches articles, analyzes against all topics
 - Articles with ANY topic score > 75% are saved
 - Dashboard auto-refreshes every 10 seconds
+
+### 4. Manage Articles
+- **Download PDF**: Click green PDF icon to download article with full content
+- **Delete Article**: Click red X icon next to article title to remove from database
+- Confirmation required before deletion
 
 ## Technical Architecture
 
@@ -134,6 +143,12 @@ CREATE TABLE articles (
 5. **Storage**: Save articles scoring > 75% on any topic
 6. **Cleanup**: Auto-remove articles > 24 hours old
 
+### User Interface Features
+- **Progress Tracking**: Orange status banner during AI processing
+- **PDF Generation**: ReportLab-based PDF export with full article content
+- **Article Deletion**: Individual article removal with confirmation
+- **Duplicate Prevention**: Prevents multiple simultaneous refresh operations
+
 ### Rate Limiting & Performance
 - **No rate limiting needed**: AWS Bedrock handles scaling automatically
 - **Content limits**: Articles truncated to 3000 chars for analysis
@@ -170,6 +185,7 @@ feedparser==6.0.10
 beautifulsoup4==4.12.2
 boto3==1.34.0
 python-dotenv==1.0.0
+reportlab==4.0.0
 ```
 
 ## Usage Examples
@@ -216,6 +232,11 @@ Economics: "GDP, unemployment, economic growth, recession, market"
 3. Ensure AWS credentials are properly configured
 4. Review console logs for processing errors
 
+### PDF Download Issues
+- **ReportLab not installed**: Run `pip install reportlab>=4.0.0`
+- **Scraping fails**: Check article URL accessibility
+- **PDF generation error**: Verify article content is not corrupted
+
 ### Database Issues
 - Delete `news.db` file to reset database
 - Check SQLite file permissions
@@ -253,6 +274,29 @@ python tests/test_bedrock_payload.py
 - Amazon Nova Pro: Competitive pricing with AWS native models
 - Typical article analysis: ~500-1000 input tokens, ~100-200 output tokens
 - Estimated cost: Contact AWS for current Nova Pro pricing
+
+## New Features Guide
+
+### PDF Export
+Each article includes a "Download PDF" button that:
+- Scrapes full article content from the original URL
+- Generates a formatted PDF with title, metadata, AI summary, topic scores, and full content
+- Downloads to your default browser download location
+- Uses ReportLab for cross-platform compatibility
+
+### Article Deletion
+Delete unwanted articles directly from the dashboard:
+1. Click the red X icon next to any article title
+2. Confirm deletion in the popup dialog
+3. Article is permanently removed from database
+4. Page automatically refreshes
+
+### Processing Status
+When clicking "Refresh News":
+- Orange banner appears: "Please wait. AI is working for you."
+- Status polls every 2 seconds to check completion
+- Banner disappears and page reloads when finished
+- Prevents duplicate refresh requests during processing
 
 ## License
 

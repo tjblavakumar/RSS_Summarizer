@@ -16,7 +16,7 @@
             <div class="navbar-nav ms-auto d-flex flex-row gap-2">
                 <a class="nav-link btn btn-success text-white fw-bold rounded shadow-sm px-3 py-2" href="{{ url_for('dashboard') }}">Dashboard</a>
                 <a class="nav-link btn btn-success text-white fw-bold rounded shadow-sm px-3 py-2" href="{{ url_for('admin') }}">Admin</a>
-                <button class="btn btn-success fw-bold rounded shadow-sm px-3 py-2" onclick="refreshNews()">Refresh News</button>
+                <button class="btn btn-success fw-bold rounded shadow-sm px-3 py-2" onclick="refreshNews()" id="refresh-btn">Refresh News</button>
                 <button class="btn btn-danger fw-bold rounded shadow-sm px-3 py-2" onclick="clearAllNews()">Clear All News</button>
             </div>
         </div>
@@ -43,8 +43,41 @@
             fetch('/refresh_news')
                 .then(response => response.json())
                 .then(data => {
-                    alert(data.message);
+                    if (data.status === 'started') {
+                        showProgressMessage();
+                        checkRefreshStatus();
+                    } else if (data.status === 'busy') {
+                        alert('News refresh is in progress. Please wait.');
+                    }
                 });
+        }
+        
+        function showProgressMessage() {
+            const messageDiv = document.getElementById('progress-message');
+            if (messageDiv) {
+                messageDiv.style.display = 'block';
+            }
+        }
+        
+        function hideProgressMessage() {
+            const messageDiv = document.getElementById('progress-message');
+            if (messageDiv) {
+                messageDiv.style.display = 'none';
+            }
+        }
+        
+        function checkRefreshStatus() {
+            const interval = setInterval(() => {
+                fetch('/refresh_status')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.processing) {
+                            clearInterval(interval);
+                            hideProgressMessage();
+                            location.reload();
+                        }
+                    });
+            }, 2000);
         }
         
         function clearAllNews() {
