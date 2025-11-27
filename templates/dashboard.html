@@ -4,11 +4,18 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <h2>Latest News Articles</h2>
+            <div class="bg-success bg-opacity-10 rounded p-3 mb-4 d-flex justify-content-between align-items-center">
+                <h2 class="fw-bold mb-0" style="font-size: 30px;">Latest News Articles</h2>
+                {% if last_refresh %}
+                <div class="fw-bold" style="font-size: 21px;">Last Refresh: {{ last_refresh.strftime('%Y-%m-%d %H:%M') }} PT</div>
+                {% endif %}
+            </div>
             {% if articles %}
                 {% for article in articles %}
                 <div class="mb-4 p-4 border-bottom">
-                    <h3 class="mb-2">{{ article.title }}</h3>
+                    <div class="bg-info bg-opacity-10 rounded p-3 mb-3">
+                        <h3 class="mb-0">{{ article.title }}</h3>
+                    </div>
                     
                     {% if article.author %}
                     <p class="fw-bold text-primary mb-3">By {{ article.author }}</p>

@@ -9,12 +9,15 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('dashboard') }}">Daily News AI</a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
-                <a class="nav-link" href="{{ url_for('admin') }}">Admin</a>
-                <button class="btn btn-outline-light btn-sm me-2" onclick="refreshNews()">Refresh News</button>
-                <button class="btn btn-outline-danger btn-sm" onclick="clearAllNews()">Clear All News</button>
+            <div class="d-flex align-items-center">
+                <img src="{{ url_for('static', filename='frb_sf_logo.jpg') }}" alt="Federal Reserve Bank of San Francisco" height="40" class="me-3">
+                <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}" style="font-size: 32px;">Daily News AI</a>
+            </div>
+            <div class="navbar-nav ms-auto d-flex flex-row gap-2">
+                <a class="nav-link btn btn-success text-white fw-bold rounded shadow-sm px-3 py-2" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-link btn btn-success text-white fw-bold rounded shadow-sm px-3 py-2" href="{{ url_for('admin') }}">Admin</a>
+                <button class="btn btn-success fw-bold rounded shadow-sm px-3 py-2" onclick="refreshNews()">Refresh News</button>
+                <button class="btn btn-danger fw-bold rounded shadow-sm px-3 py-2" onclick="clearAllNews()">Clear All News</button>
             </div>
         </div>
     </nav>

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- Left Navigation -->
+    <div class="col-lg-3 d-none d-lg-block">
+        <div class="bg-light p-3 rounded">
+            <h5 class="mb-3">Admin Panel</h5>
+            <nav class="nav flex-column">
+                <a class="nav-link {% if active_tab == 'feeds' %}active bg-primary text-white rounded{% endif %}" 
+                   href="{{ url_for('admin_feeds') }}">RSS Feeds</a>
+                <a class="nav-link {% if active_tab == 'topics' %}active bg-primary text-white rounded{% endif %}" 
+                   href="{{ url_for('admin_topics') }}">Topics</a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Mobile Navigation -->
+    <div class="col-12 d-lg-none mb-3">
+        <div class="dropdown">
+            <button class="btn btn-outline-primary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                {% if active_tab == 'feeds' %}RSS Feeds{% elif active_tab == 'topics' %}Topics{% endif %}
+            </button>
+            <ul class="dropdown-menu w-100">
+                <li><a class="dropdown-item" href="{{ url_for('admin_feeds') }}">RSS Feeds</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('admin_topics') }}">Topics</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="col-lg-9 col-12">
+        {% block admin_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}
