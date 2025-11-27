@@ -1,0 +1,10 @@
+https://feeds.npr.org/1001/rss.xml
+https://feeds.nbcnews.com/nbcnews/public/news
+https://abcnews.go.com/abcnews/topstories
+https://www.cbsnews.com/latest/rss/main
+https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml
+
+
+
+other RSS feeds
+https://www.uen.org/feeds/lists.shtml
