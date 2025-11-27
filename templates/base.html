@@ -13,7 +13,8 @@
             <div class="navbar-nav ms-auto">
                 <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
                 <a class="nav-link" href="{{ url_for('admin') }}">Admin</a>
-                <button class="btn btn-outline-light btn-sm" onclick="refreshNews()">Refresh News</button>
+                <button class="btn btn-outline-light btn-sm me-2" onclick="refreshNews()">Refresh News</button>
+                <button class="btn btn-outline-danger btn-sm" onclick="clearAllNews()">Clear All News</button>
             </div>
         </div>
     </nav>
@@ -41,6 +42,17 @@
                 .then(data => {
                     alert(data.message);
                 });
+        }
+        
+        function clearAllNews() {
+            if (confirm('Are you sure you want to delete ALL articles? This cannot be undone.')) {
+                fetch('/clear_all_news')
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(data.message);
+                        location.reload();
+                    });
+            }
         }
     </script>
 </body>
