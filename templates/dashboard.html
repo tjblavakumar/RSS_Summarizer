@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="bg-success bg-opacity-10 rounded p-3 mb-4 d-flex justify-content-between align-items-center">
+                <h2 class="fw-bold mb-0" style="font-size: 30px;">Latest News Articles</h2>
+                {% if last_refresh %}
+                <div class="fw-bold" style="font-size: 21px;">Latest Article From: {{ last_refresh.strftime('%Y-%m-%d %H:%M') }}</div>
+                {% endif %}
+            </div>
+            {% if articles %}
+                {% for article in articles %}
+                <div class="mb-4 p-4 border-bottom">
+                    <div class="bg-info bg-opacity-10 rounded p-3 mb-3">
+                        <h3 class="mb-0">{{ article.title }}</h3>
+                    </div>
+                    
+                    {% if article.author %}
+                    <p class="fw-bold text-primary mb-3">By {{ article.author }}</p>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        {{ article.summary|replace('•', '<br>•')|safe }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <span class="badge bg-primary fs-6">Best Match: {{ article.topic.name }} ({{ article.relevancy_score }}%)</span>
+                        {% if article.topic_scores %}
+                            {% for topic_name, score in article.topic_scores.items() %}
+                                {% if score >= 75 %}
+                                    <span class="badge bg-success fs-6">{{ topic_name }}: {{ score }}%</span>
+                                {% elif score >= 50 %}
+                                    <span class="badge bg-warning fs-6">{{ topic_name }}: {{ score }}%</span>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">{{ article.feed.name }} - {{ article.published_date.strftime('%Y-%m-%d %H:%M') }}</small>
+                        <a href="{{ article.url }}" target="_blank" class="btn btn-primary">Read Full Article</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info">
+                    <h4>No articles found</h4>
+                    <p>Add some RSS feeds and topics in the Admin panel, then click "Refresh News" to get started.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-refresh dashboard every 10 seconds
+setInterval(function() {
+    location.reload();
+}, 10000);
+</script>
+{% endblock %}
