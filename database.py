@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Boolean, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Boolean, ForeignKey, JSON
 from sqlalchemy.orm import sessionmaker, relationship, DeclarativeBase
 from datetime import datetime, timezone
 
@@ -26,7 +26,9 @@ class Article(Base):
     url = Column(String(1000), nullable=False, unique=True)
     content = Column(Text)
     summary = Column(Text)
+    author = Column(String(200))
     relevancy_score = Column(Integer)
+    topic_scores = Column(JSON)
     feed_id = Column(Integer, ForeignKey('feeds.id'))
     topic_id = Column(Integer, ForeignKey('topics.id'))
     published_date = Column(DateTime)

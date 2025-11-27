@@ -18,7 +18,7 @@ news_processor = NewsProcessor()
 def dashboard():
     db = SessionLocal()
     try:
-        articles = db.query(Article).options(joinedload(Article.topic), joinedload(Article.feed)).order_by(Article.created_at.desc()).limit(20).all()
+        articles = db.query(Article).options(joinedload(Article.topic), joinedload(Article.feed)).order_by(Article.published_date.desc()).limit(20).all()
         return render_template('dashboard.html', articles=articles)
     finally:
         db.close()
@@ -77,11 +77,16 @@ def refresh_news():
     else:
         return jsonify({"status": "busy", "message": "Already processing"})
 
+@app.route('/clear_all_news')
+def clear_all_news():
+    count = news_processor.clear_all_articles()
+    return jsonify({"status": "success", "message": f"Cleared {count} articles", "count": count})
+
 @app.route('/toggle_feed/<int:feed_id>')
 def toggle_feed(feed_id):
     db = SessionLocal()
     try:
-        feed = db.query(Feed).get(feed_id)
+        feed = db.get(Feed, feed_id)
         if feed:
             feed.active = not feed.active
             db.commit()
@@ -93,10 +98,36 @@ def toggle_feed(feed_id):
 def toggle_topic(topic_id):
     db = SessionLocal()
     try:
-        topic = db.query(Topic).get(topic_id)
+        topic = db.get(Topic, topic_id)
         if topic:
             topic.active = not topic.active
             db.commit()
+    finally:
+        db.close()
+    return redirect(url_for('admin'))
+
+@app.route('/delete_feed/<int:feed_id>')
+def delete_feed(feed_id):
+    db = SessionLocal()
+    try:
+        feed = db.get(Feed, feed_id)
+        if feed:
+            db.delete(feed)
+            db.commit()
+            flash('Feed deleted successfully')
+    finally:
+        db.close()
+    return redirect(url_for('admin'))
+
+@app.route('/delete_topic/<int:topic_id>')
+def delete_topic(topic_id):
+    db = SessionLocal()
+    try:
+        topic = db.get(Topic, topic_id)
+        if topic:
+            db.delete(topic)
+            db.commit()
+            flash('Topic deleted successfully')
     finally:
         db.close()
     return redirect(url_for('admin'))

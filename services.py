@@ -19,7 +19,7 @@ import os
 import re
 import time
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from database import get_db, Article, Feed, Topic
 
 logging.basicConfig(level=logging.INFO)
@@ -75,12 +75,24 @@ class AIService:
         # Using Claude 3 Haiku model which is faster and more accessible
         self.model_id = "anthropic.claude-3-haiku-20240307-v1:0"
     
-    def analyze_article(self, content, topics_text):
+    def analyze_article(self, content, topics):
+        topics_list = [f"{topic.name}: {topic.keywords}" for topic in topics]
+        topics_text = ", ".join(topics_list)
+        
         prompt = f"""Analyze this article content against these topics: {topics_text}
 
     Article: {content[:2000]}
 
-    Return ONLY a valid JSON object with no additional text: {{"relevancy_score": int (0-100), "is_relevant": bool, "summary": string}}"""
+    Return ONLY a valid JSON object with no additional text:
+    {{
+        "summary": "string (3-4 bullet points using • character)",
+        "topic_scores": {{
+            "{topics[0].name}": int (0-100),
+            "{topics[1].name if len(topics) > 1 else 'example'}": int (0-100)
+        }}
+    }}
+    
+    Include ALL topics in topic_scores with their relevancy percentages."""
         
         try:
             logger.debug("Invoking model %s", self.model_id)
@@ -120,17 +132,29 @@ class AIService:
             
             # Ensure result is a dictionary with required keys
             if isinstance(result, dict):
+                summary = result.get("summary", "")
+                # Convert list to string if needed
+                if isinstance(summary, list):
+                    summary = "\n".join(summary)
+                
+                topic_scores = result.get("topic_scores", {})
+                # Ensure all scores are integers
+                for topic_name in topic_scores:
+                    try:
+                        topic_scores[topic_name] = int(topic_scores[topic_name])
+                    except (ValueError, TypeError):
+                        topic_scores[topic_name] = 0
+                
                 return {
-                    "relevancy_score": int(result.get("relevancy_score", 0)),
-                    "is_relevant": result.get("is_relevant", False),
-                    "summary": result.get("summary", "")
+                    "summary": str(summary),
+                    "topic_scores": topic_scores
                 }
             else:
                 logger.error(f"AI returned non-dict response: {type(result)}")
-                return {"relevancy_score": 0, "is_relevant": False, "summary": "Invalid response format"}
+                return {"summary": "Invalid response format", "topic_scores": {}}
         except json.JSONDecodeError as e:
             logger.error(f"AI analysis JSON decode error: {e}")
-            return {"relevancy_score": 0, "is_relevant": False, "summary": "JSON parsing failed"}
+            return {"summary": "JSON parsing failed", "topic_scores": {}}
         except Exception as e:
             # Include the exception type and message for better diagnostics
             # For botocore ClientError, include the error response body
@@ -139,13 +163,45 @@ class AIService:
                 logger.error(f"AI analysis error: {type(e).__name__}: {e}; response: {error_response}")
             except Exception:
                 logger.error(f"AI analysis error: {type(e).__name__}: {e}")
-            return {"relevancy_score": 0, "is_relevant": False, "summary": "Analysis failed"}
+            return {"summary": "Analysis failed", "topic_scores": {}}
 
 class NewsProcessor:
     def __init__(self, api_key=None):
         self.rss_fetcher = RSSFetcher()
         self.ai_service = AIService(api_key)
         self.processing = False
+        self.refresh_callback = None
+    
+    def set_refresh_callback(self, callback):
+        self.refresh_callback = callback
+    
+    def cleanup_old_articles(self):
+        """Delete articles older than 24 hours"""
+        db = get_db()
+        try:
+            cutoff_time = datetime.now() - timedelta(hours=24)
+            old_articles = db.query(Article).filter(Article.created_at < cutoff_time).all()
+            count = len(old_articles)
+            for article in old_articles:
+                db.delete(article)
+            db.commit()
+            if count > 0:
+                print(f"Cleaned up {count} articles older than 24 hours")
+            return count
+        finally:
+            db.close()
+    
+    def clear_all_articles(self):
+        """Delete all articles from the database"""
+        db = get_db()
+        try:
+            count = db.query(Article).count()
+            db.query(Article).delete()
+            db.commit()
+            print(f"Cleared all {count} articles from database")
+            return count
+        finally:
+            db.close()
     
     def process_feeds(self):
         if self.processing:
@@ -153,6 +209,9 @@ class NewsProcessor:
         
         self.processing = True
         try:
+            # Clean up old articles first
+            self.cleanup_old_articles()
+            
             db = get_db()
             feeds = db.query(Feed).filter(Feed.active == True).all()
             topics = db.query(Topic).filter(Topic.active == True).all()
@@ -162,22 +221,42 @@ class NewsProcessor:
             
             topics_text = ", ".join([f"{t.name}: {t.keywords}" for t in topics])
             processed_count = 0
+            total_entries = 0
+            
+            print(f"\n=== Starting news processing ===")
+            print(f"Active feeds: {len(feeds)}")
+            print(f"Active topics: {len(topics)}")
             
             for feed in feeds:
+                print(f"\nProcessing feed: {feed.name}")
                 entries = self.rss_fetcher.fetch_feed(feed.url)
+                print(f"Found {len(entries)} entries in feed")
+                total_entries += len(entries)
                 
                 for entry in entries:
                     try:
                         # Safely get entry attributes
                         entry_link = getattr(entry, 'link', '')
                         entry_title = getattr(entry, 'title', 'Untitled')
+                        entry_author = getattr(entry, 'author', '') or getattr(entry, 'dc_creator', '')
+                        
+                        # Parse published date
+                        published_date = datetime.now()
+                        if hasattr(entry, 'published_parsed') and entry.published_parsed:
+                            try:
+                                published_date = datetime(*entry.published_parsed[:6])
+                            except:
+                                pass
                         
                         if not entry_link:
                             continue
                         
+                        print(f"Processing: {entry_title[:60]}...")
+                        
                         # Check if article already exists
                         existing = db.query(Article).filter(Article.url == entry_link).first()
                         if existing:
+                            print(f"  -> Already exists, skipping")
                             continue
                         
                         content = self.rss_fetcher.get_article_content(entry)
@@ -185,46 +264,54 @@ class NewsProcessor:
                             continue
                         
                         # AI analysis with rate limiting
+                        print(f"  -> Analyzing with AI...")
                         time.sleep(2)  # Rate limit protection
-                        analysis = self.ai_service.analyze_article(content, topics_text)
+                        analysis = self.ai_service.analyze_article(content, topics)
                         
-                        # Ensure analysis is a dict with valid score
+                        # Ensure analysis is a dict
                         if not isinstance(analysis, dict):
                             logger.warning(f"Invalid analysis response for {entry_title}")
                             continue
                         
-                        relevancy_score = analysis.get("relevancy_score", 0)
-                        if not isinstance(relevancy_score, int):
-                            try:
-                                relevancy_score = int(relevancy_score)
-                            except (ValueError, TypeError):
-                                relevancy_score = 0
+                        topic_scores = analysis.get("topic_scores", {})
+                        print(f"  -> Topic scores: {topic_scores}")
                         
-                        if relevancy_score > 75:
-                            # Find best matching topic
-                            best_topic = topics[0]  # Default to first topic
+                        # Check if any topic score is above 75
+                        max_score = max(topic_scores.values()) if topic_scores else 0
+                        if max_score > 75:
+                            # Find topic with highest score
+                            best_topic_name = max(topic_scores, key=topic_scores.get)
+                            best_topic = next((t for t in topics if t.name == best_topic_name), topics[0])
                             
                             article = Article(
                                 title=entry_title,
                                 url=entry_link,
                                 content=content,
                                 summary=analysis.get("summary", ""),
-                                relevancy_score=relevancy_score,
+                                author=entry_author,
+                                relevancy_score=max_score,
+                                topic_scores=topic_scores,
                                 feed_id=feed.id,
                                 topic_id=best_topic.id,
-                                published_date=datetime.now()
+                                published_date=published_date
                             )
                             
                             db.add(article)
+                            db.commit()  # Commit each article immediately
                             processed_count += 1
+                            print(f"  -> ✓ Article saved! Best topic: {best_topic.name} ({max_score}%) ({processed_count} total)")
+                        else:
+                            print(f"  -> All scores too low (max: {max_score}), skipping")
                     
                     except Exception as entry_error:
                         logger.error(f"Error processing entry: {entry_error}")
                         continue
             
-            db.commit()
             db.close()
-            return f"Processed {processed_count} relevant articles"
+            print(f"\n=== Processing complete ===")
+            print(f"Total entries processed: {total_entries}")
+            print(f"Relevant articles saved: {processed_count}")
+            return f"Processed {processed_count} relevant articles from {total_entries} entries"
             
         except Exception as e:
             logger.error(f"Processing error: {e}")
