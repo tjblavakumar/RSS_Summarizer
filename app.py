@@ -19,17 +19,31 @@ def dashboard():
     db = SessionLocal()
     try:
         articles = db.query(Article).options(joinedload(Article.topic), joinedload(Article.feed)).order_by(Article.published_date.desc()).limit(20).all()
-        return render_template('dashboard.html', articles=articles)
+        latest_article = db.query(Article).order_by(Article.created_at.desc()).first()
+        last_refresh = latest_article.created_at if latest_article else None
+        return render_template('dashboard.html', articles=articles, last_refresh=last_refresh)
     finally:
         db.close()
 
 @app.route('/admin')
 def admin():
+    return redirect(url_for('admin_feeds'))
+
+@app.route('/admin/feeds')
+def admin_feeds():
     db = SessionLocal()
     try:
         feeds = db.query(Feed).all()
+        return render_template('admin_feeds.html', feeds=feeds, active_tab='feeds')
+    finally:
+        db.close()
+
+@app.route('/admin/topics')
+def admin_topics():
+    db = SessionLocal()
+    try:
         topics = db.query(Topic).all()
-        return render_template('admin.html', feeds=feeds, topics=topics)
+        return render_template('admin_topics.html', topics=topics, active_tab='topics')
     finally:
         db.close()
 
@@ -46,7 +60,7 @@ def add_feed():
         flash('Feed added successfully')
     finally:
         db.close()
-    return redirect(url_for('admin'))
+    return redirect(url_for('admin_feeds'))
 
 @app.route('/add_topic', methods=['POST'])
 def add_topic():
@@ -61,7 +75,7 @@ def add_topic():
         flash('Topic added successfully')
     finally:
         db.close()
-    return redirect(url_for('admin'))
+    return redirect(url_for('admin_topics'))
 
 @app.route('/refresh_news')
 def refresh_news():
@@ -92,7 +106,7 @@ def toggle_feed(feed_id):
             db.commit()
     finally:
         db.close()
-    return redirect(url_for('admin'))
+    return redirect(url_for('admin_feeds'))
 
 @app.route('/toggle_topic/<int:topic_id>')
 def toggle_topic(topic_id):
@@ -104,7 +118,7 @@ def toggle_topic(topic_id):
             db.commit()
     finally:
         db.close()
-    return redirect(url_for('admin'))
+    return redirect(url_for('admin_topics'))
 
 @app.route('/delete_feed/<int:feed_id>')
 def delete_feed(feed_id):
@@ -117,7 +131,7 @@ def delete_feed(feed_id):
             flash('Feed deleted successfully')
     finally:
         db.close()
-    return redirect(url_for('admin'))
+    return redirect(url_for('admin_feeds'))
 
 @app.route('/delete_topic/<int:topic_id>')
 def delete_topic(topic_id):
@@ -130,7 +144,7 @@ def delete_topic(topic_id):
             flash('Topic deleted successfully')
     finally:
         db.close()
-    return redirect(url_for('admin'))
+    return redirect(url_for('admin_topics'))
 
 if __name__ == '__main__':
     app.run(debug=True, threaded=True)
