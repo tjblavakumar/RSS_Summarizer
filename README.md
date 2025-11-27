@@ -1,42 +1,65 @@
 # Daily News AI Assistant
 
-A locally deployable news aggregation system that uses Google Gemini AI to analyze and summarize articles based on user-defined topics.
+A locally deployable news aggregation system that uses AWS Bedrock Claude AI to analyze and summarize articles based on user-defined topics with per-topic relevancy scoring.
 
 ## Features
 
-- **RSS Feed Management**: Add and manage multiple RSS feeds
+- **RSS Feed Management**: Add and manage multiple RSS feeds with admin interface
 - **Topic-Based Filtering**: Define topics with keywords for AI-powered relevance scoring
+- **Per-Topic Analysis**: AI analyzes articles against all topics simultaneously with individual scores (0-100)
 - **Smart Content Extraction**: Automatically scrapes full articles when RSS descriptions are too short
-- **AI Analysis**: Uses Google Gemini 1.5 Flash to analyze relevance and generate summaries
-- **Rate Limiting**: Built-in delays to respect Google Gemini Free Tier limits
-- **Background Processing**: Non-blocking news updates using threading
+- **AWS Bedrock Integration**: Uses Claude 3 Haiku model for fast, cost-effective analysis
+- **Admin Interface**: Left navigation panel for managing feeds and topics
+- **Auto-refresh Dashboard**: Real-time updates every 10 seconds
+- **Automatic Cleanup**: Removes articles older than 24 hours
+- **Federal Reserve Branding**: Professional UI with FRB logo integration
 
 ## Setup Instructions
 
-### 1. Get Google AI Studio API Key
+### 1. AWS Credentials Setup
 
-1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Sign in with your Google account
-3. Click "Create API Key"
-4. Copy the generated API key
+Configure AWS credentials for Bedrock access:
+
+**Option A: Environment Variables**
+```bash
+set AWS_ACCESS_KEY_ID=your_access_key
+set AWS_SECRET_ACCESS_KEY=your_secret_key
+set AWS_DEFAULT_REGION=us-east-1
+```
+
+**Option B: AWS CLI**
+```bash
+aws configure
+```
+
+**Option C: IAM Role** (if running on EC2)
+Attach IAM role with `bedrock:InvokeModel` permission
 
 ### 2. Installation
 
 ```bash
 # Clone or download the project
-cd daily-news-ai
+cd DNA_awsbedrock
+
+# Create virtual environment
+python -m venv .venv
+.venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Create environment file
+# Create environment file (optional)
 copy .env.example .env
-
-# Edit .env and add your API key
-GOOGLE_API_KEY=your_actual_api_key_here
 ```
 
-### 3. Run the Application
+### 3. Logo Setup (Optional)
+
+Place Federal Reserve Bank logo:
+```
+static/frb_sf_logo.jpg
+```
+
+### 4. Run the Application
 
 ```bash
 python app.py
@@ -47,90 +70,190 @@ The application will be available at `http://localhost:5000`
 ## Usage
 
 ### 1. Add RSS Feeds
-- Go to Admin panel
-- Add RSS feed URLs (e.g., `https://feeds.bbci.co.uk/news/rss.xml`)
+- Navigate to **Admin → RSS Feeds**
+- Add feed URLs (e.g., `https://feeds.bbci.co.uk/news/rss.xml`)
+- Toggle feeds active/inactive as needed
 
 ### 2. Define Topics
+- Navigate to **Admin → Topics**
 - Create topics with relevant keywords
 - Example: Topic "Technology" with keywords "AI, machine learning, software, tech"
 
-### 3. Refresh News
-- Click "Refresh News" to start background processing
-- The system will fetch, analyze, and store relevant articles (score > 75)
+### 3. Process News
+- Click **"Refresh News"** on dashboard
+- System fetches articles, analyzes against all topics
+- Articles with ANY topic score > 75% are saved
+- Dashboard auto-refreshes every 10 seconds
 
-## Technical Details
+## Technical Architecture
 
-### Rate Limiting
-- 2-second delay between AI requests to avoid 429 errors
-- Uses `gemini-1.5-flash` model (most efficient for free tier)
+### AI Analysis System
+- **Model**: Claude 3 Haiku via AWS Bedrock (`anthropic.claude-3-haiku-20240307-v1:0`)
+- **Per-Topic Scoring**: Single AI call analyzes article against all topics
+- **Selection Criteria**: Articles saved if any topic scores above 75%
+- **Response Format**: JSON with summary and individual topic scores
 
-### Content Processing
-- RSS descriptions < 500 chars trigger full article scraping
-- Removes script/style/nav tags to save tokens
-- Limits content to 3000 chars for AI analysis
+### Database Schema
+```sql
+-- Feeds table
+CREATE TABLE feeds (
+    id INTEGER PRIMARY KEY,
+    name VARCHAR(200),
+    url VARCHAR(500),
+    active BOOLEAN DEFAULT TRUE
+);
 
-### Database
-- SQLite with thread-safe configuration
-- Stores feeds, topics, and analyzed articles
-- Prevents duplicate article processing
+-- Topics table  
+CREATE TABLE topics (
+    id INTEGER PRIMARY KEY,
+    name VARCHAR(100),
+    keywords TEXT,
+    active BOOLEAN DEFAULT TRUE
+);
+
+-- Articles table
+CREATE TABLE articles (
+    id INTEGER PRIMARY KEY,
+    title VARCHAR(500),
+    url VARCHAR(500) UNIQUE,
+    content TEXT,
+    summary TEXT,
+    author VARCHAR(200),
+    published_date DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    topic_scores TEXT,  -- JSON: {"Technology": 85, "Finance": 45}
+    primary_topic VARCHAR(100)
+);
+```
+
+### Content Processing Pipeline
+1. **RSS Fetching**: Parse feeds for new articles
+2. **Content Extraction**: Scrape full articles if description < 500 chars
+3. **AI Analysis**: Single Bedrock call for all topics
+4. **Scoring**: Individual relevancy scores (0-100) per topic
+5. **Storage**: Save articles scoring > 75% on any topic
+6. **Cleanup**: Auto-remove articles > 24 hours old
+
+### Rate Limiting & Performance
+- **No rate limiting needed**: AWS Bedrock handles scaling automatically
+- **Content limits**: Articles truncated to 3000 chars for analysis
+- **Efficient processing**: Single AI call per article for all topics
+- **Background processing**: Non-blocking news updates
 
 ## File Structure
 
 ```
-daily-news-ai/
-├── app.py              # Flask application and routes
-├── database.py         # SQLAlchemy models and setup
-├── services.py         # RSS fetching and AI analysis
-├── requirements.txt    # Python dependencies
-├── .env.example       # Environment template
-├── README.md          # This file
+DNA_awsbedrock/
+├── app.py                 # Flask routes and application logic
+├── database.py           # SQLAlchemy models (Feed, Topic, Article)
+├── services.py           # RSS fetching, AI analysis, news processing
+├── requirements.txt      # Python dependencies
+├── .env.example         # Environment template
+├── README.md            # This file
+├── static/
+│   └── frb_sf_logo.jpg  # Federal Reserve Bank logo
 └── templates/
-    ├── base.html      # Bootstrap base template
-    ├── dashboard.html # Article display
-    └── admin.html     # Feed/topic management
+    ├── base.html        # Main layout with navigation
+    ├── dashboard.html   # Article display with auto-refresh
+    ├── admin_base.html  # Admin layout with left navigation
+    ├── admin_feeds.html # RSS feed management
+    └── admin_topics.html # Topic management
+```
+
+## Dependencies
+
+```txt
+Flask==3.0.0
+SQLAlchemy==2.0.23
+requests==2.31.0
+feedparser==6.0.10
+beautifulsoup4==4.12.2
+boto3==1.34.0
+python-dotenv==1.0.0
+```
+
+## Usage Examples
+
+### Adding RSS Feeds
+```python
+# Common news feeds to try:
+BBC News: https://feeds.bbci.co.uk/news/rss.xml
+Reuters: https://feeds.reuters.com/reuters/topNews
+CNN: http://rss.cnn.com/rss/edition.rss
+Federal Reserve: https://www.federalreserve.gov/feeds/press_all.xml
+```
+
+### Topic Configuration
+```python
+# Example topics:
+Technology: "AI, artificial intelligence, machine learning, software, tech, digital"
+Finance: "banking, federal reserve, interest rates, monetary policy, inflation"
+Economics: "GDP, unemployment, economic growth, recession, market"
+```
+
+### API Response Format
+```json
+{
+  "summary": "• Federal Reserve announces new monetary policy\n• Interest rates remain unchanged\n• Economic outlook remains stable",
+  "topic_scores": {
+    "Finance": 95,
+    "Economics": 78,
+    "Technology": 12
+  }
+}
 ```
 
 ## Troubleshooting
 
-### API Rate Limits
-If you encounter 429 errors, the system will log them and continue processing other articles.
+### AWS Bedrock Issues
+- **403 Forbidden**: Check IAM permissions for `bedrock:InvokeModel`
+- **Model not found**: Ensure Claude 3 Haiku is available in your region
+- **Throttling**: AWS Bedrock handles rate limiting automatically
 
 ### No Articles Appearing
-1. Check that feeds are active and valid
-2. Ensure topics have relevant keywords
-3. Verify API key is correct
-4. Check console logs for errors
+1. Verify RSS feeds are active and accessible
+2. Check topic keywords are relevant to feed content
+3. Ensure AWS credentials are properly configured
+4. Review console logs for processing errors
 
 ### Database Issues
-Delete `news.db` file to reset the database if needed.
+- Delete `news.db` file to reset database
+- Check SQLite file permissions
+- Verify database schema with `python -c "from database import init_db; init_db()"`
 
-## AWS Bedrock integration notes
+### Performance Optimization
+- Limit number of active feeds to reduce processing time
+- Use specific keywords in topics for better relevancy
+- Monitor AWS Bedrock costs in CloudWatch
 
-This repository includes a `services.py` integration that uses the AWS Bedrock runtime to run models from different providers (Anthropic/Claude, etc.). A few important details for working with Bedrock and provider-specific models:
+## AWS Bedrock Integration Notes
 
-- Provider version formatting: For Anthropic/Claude models, the provider API version should be provided as a date string in the format YYYY-MM-DD (for example, `"2023-06-01"`) and should not include the `bedrock-` prefix (e.g., `bedrock-2023-06-01` is invalid).
-- Request body formats: Anthropic/Claude models expect a `messages` array with `role` and `content` fields. Some model providers (e.g., other LLMs) may accept an `input` string instead. `services.py` adapts the payload automatically based on the model ID (it uses `messages` if `anthropic` is in the model id, otherwise it uses `input`).
-- Body encoding: The `body` parameter passed to `bedrock_client.invoke_model` must be JSON encoded bytes: `json.dumps(payload).encode('utf-8')`.
+### Model Configuration
+- **Model ID**: `anthropic.claude-3-haiku-20240307-v1:0`
+- **Provider Version**: `bedrock-2023-05-31` (configurable via `ANTHROPIC_PROVIDER_VERSION`)
+- **Region**: `us-east-1` (configurable in `services.py`)
 
-Note about Anthropic provider version: `services.py` does not set a provider-specific `anthropic_version` by default. Bedrock will use a default stable provider version when none is provided. If you must request a specific provider version, set the `ANTHROPIC_PROVIDER_VERSION` environment variable (e.g., `2023-06-01`) and the application will include it in the payload.
+### Request Format
+```python
+payload = {
+    "anthropic_version": "bedrock-2023-05-31",
+    "max_tokens": 500,
+    "messages": [{"role": "user", "content": prompt}]
+}
+```
 
-### Local testing (no AWS calls)
-
-To validate the Bedrock payload without contacting AWS, run the included local test script that monkey-patches the bedrock client and asserts the payload structure:
-
-```powershell
+### Local Testing
+Test Bedrock payload without AWS calls:
+```bash
 .\.venv\Scripts\activate
 python tests/test_bedrock_payload.py
 ```
 
-### Real invocation
+### Cost Considerations
+- Claude 3 Haiku: ~$0.25 per 1M input tokens
+- Typical article analysis: ~500-1000 tokens
+- Estimated cost: $0.0005-0.001 per article
 
-If you run a real Bedrock invocation, ensure:
-- Your AWS credentials are set and have the correct permissions to call Bedrock.
-- The target model is available in the region you select.
-- You are aware of potential costs for model invocation.
+## License
 
-### Common errors
-- ValidationException: "messages: Field required" — Make sure you send `messages` (Anthropic/Claude models) instead of `input`.
-- ValidationException: "Invalid API version: bedrock-YYYY-MM-DD" — Use plain `YYYY-MM-DD` for `anthropic_version` (no `bedrock-` prefix).
-- Other errors: Use debug logs and `ResponseMetadata` for more diagnostics in `services.py`.
+This project is for internal use and demonstration purposes.
