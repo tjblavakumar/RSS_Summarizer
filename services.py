@@ -177,7 +177,8 @@ class NewsProcessor:
         db = get_db()
         try:
             cutoff_time = datetime.now() - timedelta(hours=24)
-            old_articles = db.query(Article).filter(Article.created_at < cutoff_time).all()
+            #old_articles = db.query(Article).filter(Article.created_at < cutoff_time).all()
+            old_articles = db.query(Article).filter(Article.published_date < cutoff_time).all()
             count = len(old_articles)
             for article in old_articles:
                 db.delete(article)
@@ -308,6 +309,10 @@ class NewsProcessor:
             print(f"\n=== Processing complete ===")
             print(f"Total entries processed: {total_entries}")
             print(f"Relevant articles saved: {processed_count}")
+            
+            # Clean up old articles at the end
+            self.cleanup_old_articles()
+            
             return f"Processed {processed_count} relevant articles from {total_entries} entries"
             
         except Exception as e:
