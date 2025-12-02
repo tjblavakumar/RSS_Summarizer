@@ -7,6 +7,14 @@
         <input type="text" class="form-control" name="name" placeholder="Topic Name" required>
     </div>
     <div class="mb-3">
+        <select class="form-select" name="category_id">
+            <option value="">No Category</option>
+            {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="mb-3">
         <textarea class="form-control" name="keywords" placeholder="Keywords (comma separated)" rows="3" required></textarea>
     </div>
     <button type="submit" class="btn btn-primary">Add Topic</button>
@@ -16,7 +24,11 @@
     {% for topic in topics %}
     <div class="list-group-item d-flex justify-content-between align-items-center">
         <div>
-            <strong>{{ topic.name }}</strong><br>
+            <strong>{{ topic.name }}</strong>
+            {% if topic.category %}
+                <span class="badge ms-2" style="background-color: {{ topic.category.color }}; color: white;">{{ topic.category.name }}</span>
+            {% endif %}
+            <br>
             <small class="text-muted">{{ topic.keywords }}</small>
         </div>
         <div>

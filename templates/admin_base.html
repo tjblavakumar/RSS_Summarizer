@@ -9,8 +9,12 @@
             <nav class="nav flex-column">
                 <a class="nav-link {% if active_tab == 'feeds' %}active bg-primary text-white rounded{% endif %}" 
                    href="{{ url_for('admin_feeds') }}">RSS Feeds</a>
+                <a class="nav-link {% if active_tab == 'categories' %}active bg-primary text-white rounded{% endif %}" 
+                   href="{{ url_for('admin_categories') }}">Categories</a>
                 <a class="nav-link {% if active_tab == 'topics' %}active bg-primary text-white rounded{% endif %}" 
                    href="{{ url_for('admin_topics') }}">Topics</a>
+                <a class="nav-link {% if active_tab == 'scheduler' %}active bg-primary text-white rounded{% endif %}" 
+                   href="{{ url_for('admin_scheduler') }}">Scheduler</a>
             </nav>
         </div>
     </div>
@@ -19,11 +23,13 @@
     <div class="col-12 d-lg-none mb-3">
         <div class="dropdown">
             <button class="btn btn-outline-primary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
-                {% if active_tab == 'feeds' %}RSS Feeds{% elif active_tab == 'topics' %}Topics{% endif %}
+                {% if active_tab == 'feeds' %}RSS Feeds{% elif active_tab == 'categories' %}Categories{% elif active_tab == 'topics' %}Topics{% elif active_tab == 'scheduler' %}Scheduler{% endif %}
             </button>
             <ul class="dropdown-menu w-100">
                 <li><a class="dropdown-item" href="{{ url_for('admin_feeds') }}">RSS Feeds</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('admin_categories') }}">Categories</a></li>
                 <li><a class="dropdown-item" href="{{ url_for('admin_topics') }}">Topics</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('admin_scheduler') }}">Scheduler</a></li>
             </ul>
         </div>
     </div>

@@ -12,12 +12,23 @@ class Feed(Base):
     url = Column(String(500), nullable=False)
     active = Column(Boolean, default=True)
 
+class Category(Base):
+    __tablename__ = 'categories'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    color = Column(String(7), default='#007bff')  # Hex color code
+    active = Column(Boolean, default=True)
+
 class Topic(Base):
     __tablename__ = 'topics'
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
     keywords = Column(Text, nullable=False)
+    category_id = Column(Integer, ForeignKey('categories.id'))
     active = Column(Boolean, default=True)
+    
+    category = relationship("Category")
 
 class Article(Base):
     __tablename__ = 'articles'
@@ -33,6 +44,8 @@ class Article(Base):
     topic_id = Column(Integer, ForeignKey('topics.id'))
     published_date = Column(DateTime)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    category_name = Column(String(100))
+    category_color = Column(String(7))
     
     feed = relationship("Feed")
     topic = relationship("Topic")
