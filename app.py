@@ -8,7 +8,7 @@ from services import NewsProcessor
 from scheduler import init_scheduler, rss_scheduler
 from output_generators import OutputGenerator
 import pytz
-from datetime import datetime
+from datetime import datetime, date
 
 load_dotenv()
 
@@ -267,6 +267,23 @@ def generate_html():
     except Exception as e:
         flash(f'Error generating HTML: {e}')
         return redirect(url_for('dashboard'))
+
+@app.route('/generate_date_range_report', methods=['POST'])
+def generate_date_range_report():
+    try:
+        start_date = request.form['start_date']
+        end_date = request.form['end_date']
+        format_type = request.form['format']
+        
+        if format_type == 'markdown':
+            filename = output_generator.generate_markdown(start_date=start_date, end_date=end_date)
+        else:
+            filename = output_generator.generate_html(start_date=start_date, end_date=end_date)
+            
+        return send_file(filename, as_attachment=True, download_name=f"rss_summary_{start_date}_to_{end_date}.{format_type}")
+    except Exception as e:
+        flash(f'Error generating date range report: {e}')
+        return redirect(url_for('admin_scheduler'))
 
 if __name__ == '__main__':
     app.run(debug=True, threaded=True)
