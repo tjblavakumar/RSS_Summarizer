@@ -1,19 +1,32 @@
 import os
-from datetime import datetime
+from datetime import datetime, date
 from database import get_db, Article, Category
+from sqlalchemy import and_
 
 class OutputGenerator:
     def __init__(self):
         self.output_dir = "output"
         os.makedirs(self.output_dir, exist_ok=True)
     
-    def generate_markdown(self):
+    def generate_markdown(self, start_date=None, end_date=None):
         db = get_db()
         try:
-            articles = db.query(Article).order_by(Article.published_date.desc()).all()
+            query = db.query(Article)
+            
+            if start_date and end_date:
+                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                end_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+                query = query.filter(and_(
+                    Article.published_date >= start_dt,
+                    Article.published_date <= end_dt
+                ))
+            
+            articles = query.order_by(Article.published_date.desc()).all()
             
             content = f"# RSS News Summary\n\n"
             content += f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+            if start_date and end_date:
+                content += f"Date Range: {start_date} to {end_date}\n\n"
             content += f"Total Articles: {len(articles)}\n\n"
             
             for article in articles:
@@ -36,10 +49,20 @@ class OutputGenerator:
         finally:
             db.close()
     
-    def generate_html(self):
+    def generate_html(self, start_date=None, end_date=None):
         db = get_db()
         try:
-            articles = db.query(Article).order_by(Article.published_date.desc()).all()
+            query = db.query(Article)
+            
+            if start_date and end_date:
+                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                end_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+                query = query.filter(and_(
+                    Article.published_date >= start_dt,
+                    Article.published_date <= end_dt
+                ))
+            
+            articles = query.order_by(Article.published_date.desc()).all()
             
             html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -68,6 +91,7 @@ class OutputGenerator:
     <div class="header">
         <h1>RSS News Summary</h1>
         <p>Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        {f'<p>Date Range: {start_date} to {end_date}</p>' if start_date and end_date else ''}
         <p>Total Articles: {len(articles)}</p>
     </div>
 """
