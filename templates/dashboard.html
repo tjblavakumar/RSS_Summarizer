@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="bg-success bg-opacity-10 rounded p-3 mb-4 d-flex justify-content-between align-items-center">
+                <h1 class="fw-bold mb-0" style="font-size: 24px;">RSS News Summary</h1>
+                <div class="d-flex align-items-center gap-3">
+                    <a href="{{ url_for('generate_markdown') }}" class="btn btn-outline-primary btn-sm">Download Markdown</a>
+                    <a href="{{ url_for('generate_html') }}" class="btn btn-outline-success btn-sm">Download HTML</a>
+                    {% if last_refresh %}
+                    <div class="fw-bold" style="font-size: 14px;">Generated: {{ last_refresh.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <p class="mb-4">Total Articles: {{ articles|length }}</p>
+            {% if articles %}
+                {% for article in articles %}
+                <div class="mb-4 pb-3 border-bottom">
+                    <h3 class="mb-2" style="font-size: 1.2em; font-weight: 600;">
+                        <a href="{{ article.url }}" target="_blank" class="text-decoration-none text-primary">{{ article.title }}</a>
+                    </h3>
+                    
+                    <div class="text-muted mb-3" style="font-size: 0.9em; font-style: italic;">
+                        Author: {{ article.author or 'Unknown' }} | Published: {{ article.published_date.strftime('%Y-%m-%d %H:%M') }}
+                    </div>
+                    
+                    {% if article.summary %}
+                    <div class="mb-3">
+                        <ul class="mb-0 ps-3">
+                            {% for line in article.summary.split('\n') %}
+                                {% if line.strip().startswith('•') %}
+                                    <li class="mb-2 text-dark">{{ line.strip()[1:].strip() }}</li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% if article.category_name %}
+                    <div class="mt-2 d-flex justify-content-between align-items-center">
+                        <span class="badge" style="background-color: {{ article.category_color or '#3498db' }}; color: white;">{{ article.category_name }}</span>
+                        <a href="{{ article.url }}" target="_blank" class="btn btn-sm" style="background-color: {{ article.category_color or '#3498db' }}; color: white; border: none;">Read More</a>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info">
+                    <h4>No articles found</h4>
+                    <p>Add some RSS feeds and topics in the Admin panel, then click "Refresh News" to get started.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-refresh dashboard every 10 seconds
+setInterval(function() {
+    location.reload();
+}, 10000);
+</script>
+{% endblock %}

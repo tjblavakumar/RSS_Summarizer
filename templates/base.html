@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Daily News AI Assistant{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <img src="{{ url_for('static', filename='frb_sf_logo.jpg') }}" alt="Federal Reserve Bank of San Francisco" height="40" class="me-3">
+                <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}" style="font-size: 32px;">Daily News AI</a>
+            </div>
+            <div class="navbar-nav ms-auto d-flex flex-row gap-2">
+                <a class="nav-link btn btn-success text-white fw-bold rounded shadow-sm px-3 py-2" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-link btn btn-success text-white fw-bold rounded shadow-sm px-3 py-2" href="{{ url_for('admin') }}">Admin</a>
+                <button class="btn btn-success fw-bold rounded shadow-sm px-3 py-2" onclick="refreshNews()">Refresh News</button>
+                <button class="btn btn-danger fw-bold rounded shadow-sm px-3 py-2" onclick="clearAllNews()">Clear All News</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-success alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function refreshNews() {
+            fetch('/refresh_news')
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                });
+        }
+        
+        function clearAllNews() {
+            if (confirm('Are you sure you want to delete ALL articles? This cannot be undone.')) {
+                fetch('/clear_all_news')
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(data.message);
+                        location.reload();
+                    });
+            }
+        }
+    </script>
+</body>
+</html>
