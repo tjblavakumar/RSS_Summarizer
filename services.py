@@ -28,9 +28,21 @@ class RSSFetcher:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
     
-    def fetch_feed(self, feed_url):
+    def fetch_feed(self, feed_url, access_key=None):
         try:
-            feed = feedparser.parse(feed_url)
+            request_headers = self.headers.copy()
+            if access_key:
+                request_headers['Authorization'] = access_key
+                # Also try adding as API-Key header just in case
+                request_headers['API-Key'] = access_key
+                
+            # Use requests to fetch first if we have custom headers
+            if access_key:
+                response = requests.get(feed_url, headers=request_headers)
+                response.raise_for_status()
+                feed = feedparser.parse(response.content)
+            else:
+                feed = feedparser.parse(feed_url)
             return feed.entries
         except Exception as e:
             logger.error(f"Error fetching feed {feed_url}: {e}")
@@ -63,7 +75,7 @@ Provide up to 5 bullet points with:
 Categorize: {categories_text}
 
 Return JSON:
-{{"highlights": ["Fact with quote 1", "Fact with quote 2", "Fact 3", "Fact 4", "Fact 5"], "category": "category_name"}}"""
+{{"summary": "A precise, professional summary of the article (2-3 sentences).", "quotes": ["Direct quote 1", "Direct quote 2"], "highlights": ["Key fact 1", "Key fact 2"], "category": "category_name"}}"""
         
         try:
             payload = {
@@ -103,9 +115,35 @@ Return JSON:
                 else:
                     highlights_text = str(highlights)
                     
+                summary_text = result.get("summary", "")
+                quotes = result.get("quotes", [])
+                if isinstance(quotes, list):
+                    quotes_text = "\n".join([f"> \"{q}\"" for q in quotes if q])
+                else:
+                    quotes_text = str(quotes)
+                
+                highlights = result.get("highlights", [])
+                if isinstance(highlights, list):
+                    # Clean up redundant bullets
+                    cleaned_highlights = []
+                    seen_content = set()
+                    for h in highlights:
+                        clean_h = h.strip()
+                        if clean_h.startswith('•'):
+                            clean_h = clean_h[1:].strip()
+                        normalized = clean_h.lower().replace('"', '').replace("'", '').strip()
+                        if normalized and normalized not in seen_content:
+                            seen_content.add(normalized)
+                            cleaned_highlights.append(clean_h)
+                    highlights_text = "\n".join([f"• {h}" for h in cleaned_highlights])
+                else:
+                    highlights_text = str(highlights)
+
+                full_summary = f"{summary_text}\n\n**Key Facts:**\n{highlights_text}\n\n**Quotes:**\n{quotes_text}"
+
                 return {
-                    "summary": highlights_text,
-                    "quotes": "",
+                    "summary": full_summary,
+                    "quotes": quotes_text,
                     "category": result.get("category", "")
                 }
         except Exception as e:
@@ -171,7 +209,7 @@ class NewsProcessor:
             
             for feed in feeds:
                 print(f"\nProcessing feed: {feed.name}")
-                entries = self.rss_fetcher.fetch_feed(feed.url)
+                entries = self.rss_fetcher.fetch_feed(feed.url, feed.access_key)
                 print(f"Found {len(entries)} entries in feed")
                 total_entries += len(entries)
                 
@@ -220,6 +258,24 @@ class NewsProcessor:
                         
                         category = next((c for c in categories if c.name == category_name), categories[0]) if category_name else categories[0]
                             
+                        # Calculate relevancy score based on category
+                        relevancy_score = 10
+                        cat_lower = category.name.lower()
+                        if "federal reserve" in cat_lower:
+                            relevancy_score = 100
+                        elif "economy" in cat_lower:
+                            relevancy_score = 90
+                        elif "inflation" in cat_lower:
+                            relevancy_score = 80
+                        elif "financial" in cat_lower:
+                            relevancy_score = 70
+                        elif "presidential" in cat_lower:
+                            relevancy_score = 60
+                        elif "tariff" in cat_lower:
+                            relevancy_score = 50
+                        elif "tech" in cat_lower:
+                            relevancy_score = 40
+                            
                         article = Article(
                             title=entry_title,
                             url=entry_link,
@@ -229,7 +285,8 @@ class NewsProcessor:
                             feed_id=feed.id,
                             published_date=published_date,
                             category_name=category.name,
-                            category_color=category.color
+                            category_color=category.color,
+                            relevancy_score=relevancy_score
                         )
                         
                         db.add(article)

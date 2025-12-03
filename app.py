@@ -3,7 +3,8 @@ from dotenv import load_dotenv
 import os
 import threading
 from sqlalchemy.orm import joinedload
-from database import SessionLocal, Feed, Topic, Article, Category
+from database import SessionLocal, Feed, Topic, Article, Category, SystemConfig
+from sqlalchemy import func
 from services import NewsProcessor
 from scheduler import init_scheduler, rss_scheduler
 from output_generators import OutputGenerator
@@ -29,9 +30,18 @@ def dashboard():
         articles = db.query(Article).options(
             joinedload(Article.topic).joinedload(Topic.category),
             joinedload(Article.feed)
-        ).order_by(Article.published_date.desc()).limit(20).all()
+        ).order_by(Article.relevancy_score.desc(), Article.published_date.desc()).limit(20).all()
         
         categories = db.query(Category).filter(Category.active == True).all()
+        
+        # Get category counts
+        category_counts = db.query(
+            Article.category_name,
+            func.count(Article.id).label('count')
+        ).group_by(Article.category_name).all()
+        category_stats = {cat: count for cat, count in category_counts}
+        total_articles = db.query(Article).count()
+        
         latest_article = db.query(Article).order_by(Article.created_at.desc()).first()
         last_refresh = None
         if latest_article and latest_article.created_at:
@@ -41,7 +51,9 @@ def dashboard():
         return render_template('dashboard.html', 
                              articles=articles, 
                              categories=categories,
-                             last_refresh=last_refresh)
+                             last_refresh=last_refresh,
+                             category_stats=category_stats,
+                             total_articles=total_articles)
     finally:
         db.close()
 
@@ -77,14 +89,44 @@ def admin_categories():
     finally:
         db.close()
 
+@app.route('/admin/llm')
+def admin_llm():
+    db = SessionLocal()
+    try:
+        config_items = db.query(SystemConfig).all()
+        config = {item.key: item.value for item in config_items}
+        return render_template('admin_llm.html', config=config, active_tab='llm')
+    finally:
+        db.close()
+
+@app.route('/update_llm_config', methods=['POST'])
+def update_llm_config():
+    db = SessionLocal()
+    try:
+        config_keys = ['llm_provider', 'llm_api_key', 'llm_model', 'llm_api_base']
+        for key in config_keys:
+            value = request.form.get(key, '')
+            config_item = db.query(SystemConfig).filter(SystemConfig.key == key).first()
+            if config_item:
+                config_item.value = value
+            else:
+                config_item = SystemConfig(key=key, value=value)
+                db.add(config_item)
+        db.commit()
+        flash('LLM configuration updated successfully')
+    finally:
+        db.close()
+    return redirect(url_for('admin_llm'))
+
 @app.route('/add_feed', methods=['POST'])
 def add_feed():
     name = request.form['name']
     url = request.form['url']
+    access_key = request.form.get('access_key')
     
     db = SessionLocal()
     try:
-        feed = Feed(name=name, url=url)
+        feed = Feed(name=name, url=url, access_key=access_key)
         db.add(feed)
         db.commit()
         flash('Feed added successfully')
