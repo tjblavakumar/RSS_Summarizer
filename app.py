@@ -5,6 +5,7 @@ import threading
 from sqlalchemy.orm import joinedload
 from database import SessionLocal, Feed, Topic, Article, Category, SystemConfig
 from sqlalchemy import func
+from collections import Counter
 from services import NewsProcessor
 from scheduler import init_scheduler, rss_scheduler
 from output_generators import OutputGenerator
@@ -13,8 +14,19 @@ from datetime import datetime
 
 load_dotenv()
 
+import re
+
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this'
+
+def slugify(s):
+    s = str(s).lower().strip()
+    s = re.sub(r'[^\w\s-]', '', s)
+    s = re.sub(r'[\s_-]+', '-', s)
+    s = re.sub(r'^-+|-+$', '', s)
+    return s
+
+app.jinja_env.filters['slugify'] = slugify
 
 # Initialize news processor (no API key needed for AWS Bedrock)
 news_processor = NewsProcessor()
@@ -30,16 +42,10 @@ def dashboard():
         articles = db.query(Article).options(
             joinedload(Article.topic).joinedload(Topic.category),
             joinedload(Article.feed)
-        ).order_by(Article.relevancy_score.desc(), Article.published_date.desc()).limit(20).all()
+        ).order_by(Article.relevancy_score.desc(), Article.published_date.desc()).limit(200).all()
         
         categories = db.query(Category).filter(Category.active == True).all()
         
-        # Get category counts
-        category_counts = db.query(
-            Article.category_name,
-            func.count(Article.id).label('count')
-        ).group_by(Article.category_name).all()
-        category_stats = {cat: count for cat, count in category_counts}
         total_articles = db.query(Article).count()
         
         latest_article = db.query(Article).order_by(Article.created_at.desc()).first()
@@ -47,6 +53,10 @@ def dashboard():
         if latest_article and latest_article.created_at:
             pst = pytz.timezone('US/Pacific')
             last_refresh = latest_article.created_at.replace(tzinfo=pytz.UTC).astimezone(pst)
+        
+        # Calculate stats from the actually fetched articles to ensure links match content
+        category_names = [a.category_name for a in articles if a.category_name]
+        category_stats = dict(Counter(category_names))
         
         return render_template('dashboard.html', 
                              articles=articles, 
@@ -311,4 +321,4 @@ def generate_html():
         return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
-    app.run(debug=True, threaded=True)
+    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)

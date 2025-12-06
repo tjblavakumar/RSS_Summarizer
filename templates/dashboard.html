@@ -36,7 +36,7 @@
                             <div class="list-group">
                                 {% for category in categories %}
                                 {% if category.name in category_stats %}
-                                <a href="#category-{{ category.name | replace(' ', '-') | lower }}"
+                                <a href="#category-{{ category.name | slugify }}"
                                     class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                                     style="border-left: 4px solid {{ category.color }};">
                                     <span>{{ category.name }}</span>
@@ -46,6 +46,18 @@
                                 </a>
                                 {% endif %}
                                 {% endfor %}
+
+                                {% set uncategorized_count = articles | rejectattr('category_name') | list | length %}
+                                {% if uncategorized_count > 0 %}
+                                <a href="#category-uncategorized"
+                                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                    style="border-left: 4px solid #6c757d;">
+                                    <span>Uncategorized</span>
+                                    <span class="badge rounded-pill bg-secondary">
+                                        {{ uncategorized_count }}
+                                    </span>
+                                </a>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -61,7 +73,7 @@
                     {% if category_articles %}
 
                     <!-- Category Section Header -->
-                    <div id="category-{{ category.name | replace(' ', '-') | lower }}" class="mb-4 pb-2 border-bottom"
+                    <div id="category-{{ category.name | slugify }}" class="mb-4 pb-2 border-bottom"
                         style="border-color: {{ category.color }} !important; border-width: 3px !important;">
                         <h2 class="mb-0" style="color: {{ category.color }}; font-size: 1.5em;">
                             {{ category.name }}
@@ -199,7 +211,8 @@
     document.querySelectorAll('a[href^="#category-"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
+            const targetId = this.getAttribute('href').substring(1);
+            const target = document.getElementById(targetId);
             if (target) {
                 target.scrollIntoView({
                     behavior: 'smooth',
