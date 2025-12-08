@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from sqlalchemy.orm import joinedload
 from database import get_db, Article, Category
 
 class OutputGenerator:
@@ -10,7 +11,7 @@ class OutputGenerator:
     def generate_markdown(self):
         db = get_db()
         try:
-            articles = db.query(Article).order_by(Article.relevancy_score.desc(), Article.published_date.desc()).all()
+            articles = db.query(Article).options(joinedload(Article.feed)).order_by(Article.relevancy_score.desc(), Article.published_date.desc()).all()
             
             content = f"# RSS News Summary\n\n"
             content += f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
@@ -18,7 +19,8 @@ class OutputGenerator:
             
             for article in articles:
                 content += f"### [{article.title}]({article.url})\n\n"
-                content += f"**Author:** {article.author or 'Unknown'} | **Published:** {article.published_date.strftime('%Y-%m-%d %H:%M')}\n\n"
+                source_name = article.feed.name if article.feed else 'Unknown'
+                content += f"**Source:** {source_name} | **Author:** {article.author or 'Unknown'} | **Published:** {article.published_date.strftime('%Y-%m-%d %H:%M')}\n\n"
                 
                 if article.summary:
                     content += f"{article.summary}\n\n"
@@ -39,7 +41,7 @@ class OutputGenerator:
     def generate_html(self):
         db = get_db()
         try:
-            articles = db.query(Article).order_by(Article.relevancy_score.desc(), Article.published_date.desc()).all()
+            articles = db.query(Article).options(joinedload(Article.feed)).order_by(Article.relevancy_score.desc(), Article.published_date.desc()).all()
             
             html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -81,10 +83,11 @@ class OutputGenerator:
 """
             
             for article in articles:
+                source_name = article.feed.name if article.feed else 'Unknown'
                 html += f'    <div class="article">\n'
                 html += f'        <h3 class="article-title"><a href="{article.url}" target="_blank">{article.title}</a></h3>\n'
                 html += f'        <div class="meta">\n'
-                html += f'            Author: {article.author or "Unknown"} | Published: {article.published_date.strftime("%Y-%m-%d %H:%M")}\n'
+                html += f'            Source: {source_name} | Author: {article.author or "Unknown"} | Published: {article.published_date.strftime("%Y-%m-%d %H:%M")}\n'
                 html += f'        </div>\n'
                 
                 if article.summary:

@@ -81,7 +81,7 @@
                     </div>
 
                     <!-- Articles in this Category -->
-                    {% for article in category_articles %}
+                    {% for article in category_articles[:5] %}
                     <div class="mb-4 pb-3 border-bottom">
                         <h3 class="mb-2" style="font-size: 1.2em; font-weight: 600;">
                             <a href="{{ article.url }}" target="_blank" class="text-decoration-none text-primary">
@@ -90,7 +90,8 @@
                         </h3>
 
                         <div class="text-muted mb-3" style="font-size: 0.9em; font-style: italic;">
-                            Author: {{ article.author or 'Unknown' }} | Published: {{
+                            Source: {{ article.feed.name if article.feed else 'Unknown' }} | Author: {{ article.author
+                            or 'Unknown' }} | Published: {{
                             article.published_date.strftime('%Y-%m-%d %H:%M') }}
                         </div>
 
@@ -119,16 +120,47 @@
                         </div>
                         {% endif %}
 
-                        <div class="mt-2 d-flex justify-content-between align-items-center">
-                            <span class="badge" style="background-color: {{ category.color }}; color: white;">
-                                {{ category.name }}
-                            </span>
-                            <a href="{{ article.url }}" target="_blank" class="btn btn-sm"
-                                style="background-color: {{ category.color }}; color: white; border: none;">
-                                Read More
-                            </a>
+                        <!-- Action Toolbar -->
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge" style="background-color: {{ category.color }}; color: white;">
+                                    {{ category.name }}
+                                </span>
+                                {% if article.relevancy_score is not none %}
+                                <span class="badge bg-light text-dark border" title="Relevancy Score">
+                                    {{ article.relevancy_score }}%
+                                </span>
+                                {% endif %}
+                                <a href="{{ article.url }}" target="_blank" class="btn btn-sm btn-outline-secondary"
+                                    style="border: none;">
+                                    Read Original
+                                </a>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-sm btn-outline-primary border-0"
+                                    onclick="editSummary('{{ article.id }}')">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </button>
+                                <div class="vr mx-1"></div>
+                                <button
+                                    class="btn btn-sm btn-outline-success border-0 {% if article.user_feedback == 1 %}active{% endif %}"
+                                    onclick="rateArticle('{{ article.id }}', 1)" id="like-{{ article.id }}">
+                                    <i
+                                        class="bi bi-hand-thumbs-up{% if article.user_feedback == 1 %}-fill{% endif %}"></i>
+                                </button>
+                                <button
+                                    class="btn btn-sm btn-outline-danger border-0 {% if article.user_feedback == -1 %}active{% endif %}"
+                                    onclick="rateArticle('{{ article.id }}', -1)" id="dislike-{{ article.id }}">
+                                    <i
+                                        class="bi bi-hand-thumbs-down{% if article.user_feedback == -1 %}-fill{% endif %}"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Hidden textarea for raw summary content to populate modal -->
+                    <textarea id="raw-summary-{{ article.id }}" style="display: none;">{{ article.summary }}</textarea>
                     {% endfor %}
                     {% set _ = ns.processed_categories.append(category.name) %}
                     {% endif %}
@@ -143,7 +175,7 @@
                         <h2 class="mb-0" style="font-size: 1.5em;">Uncategorized</h2>
                     </div>
 
-                    {% for article in uncategorized %}
+                    {% for article in uncategorized[:5] %}
                     <div class="mb-4 pb-3 border-bottom">
                         <h3 class="mb-2" style="font-size: 1.2em; font-weight: 600;">
                             <a href="{{ article.url }}" target="_blank" class="text-decoration-none text-primary">
@@ -152,7 +184,8 @@
                         </h3>
 
                         <div class="text-muted mb-3" style="font-size: 0.9em; font-style: italic;">
-                            Author: {{ article.author or 'Unknown' }} | Published: {{
+                            Source: {{ article.feed.name if article.feed else 'Unknown' }} | Author: {{ article.author
+                            or 'Unknown' }} | Published: {{
                             article.published_date.strftime('%Y-%m-%d %H:%M') }}
                         </div>
 
@@ -181,12 +214,42 @@
                         </div>
                         {% endif %}
 
-                        <div class="mt-2">
-                            <a href="{{ article.url }}" target="_blank" class="btn btn-sm btn-primary">
-                                Read More
-                            </a>
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                            <div class="d-flex align-items-center gap-2">
+                                {% if article.relevancy_score is not none %}
+                                <span class="badge bg-light text-dark border" title="Relevancy Score">
+                                    {{ article.relevancy_score }}%
+                                </span>
+                                {% endif %}
+                                <a href="{{ article.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    Read Original
+                                </a>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-sm btn-outline-primary border-0"
+                                    onclick="editSummary('{{ article.id }}')">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </button>
+                                <div class="vr mx-1"></div>
+                                <button
+                                    class="btn btn-sm btn-outline-success border-0 {% if article.user_feedback == 1 %}active{% endif %}"
+                                    onclick="rateArticle('{{ article.id }}', 1)" id="like-{{ article.id }}">
+                                    <i
+                                        class="bi bi-hand-thumbs-up{% if article.user_feedback == 1 %}-fill{% endif %}"></i>
+                                </button>
+                                <button
+                                    class="btn btn-sm btn-outline-danger border-0 {% if article.user_feedback == -1 %}active{% endif %}"
+                                    onclick="rateArticle('{{ article.id }}', -1)" id="dislike-{{ article.id }}">
+                                    <i
+                                        class="bi bi-hand-thumbs-down{% if article.user_feedback == -1 %}-fill{% endif %}"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Hidden textarea for raw summary content to populate modal -->
+                    <textarea id="raw-summary-{{ article.id }}" style="display: none;">{{ article.summary }}</textarea>
                     {% endfor %}
                     {% endif %}
                 </div>
@@ -221,5 +284,108 @@
             }
         });
     });
+
+    // Edit Summary Modal Logic
+    let currentArticleId = null;
+    const editModal = new bootstrap.Modal(document.getElementById('editSummaryModal'));
+
+    function editSummary(articleId) {
+        currentArticleId = articleId;
+        const rawSummary = document.getElementById(`raw-summary-${articleId}`).value;
+        document.getElementById('editSummaryText').value = rawSummary;
+        editModal.show();
+    }
+
+    function saveSummary() {
+        if (!currentArticleId) return;
+
+        const newSummary = document.getElementById('editSummaryText').value;
+
+        fetch(`/update_summary/${currentArticleId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ summary: newSummary })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload(); // Reload to show formatted changes
+                } else {
+                    alert('Error updating summary: ' + data.message);
+                }
+            });
+    }
+
+    // Feedback Logic
+    function rateArticle(articleId, feedback) {
+        const likeBtn = document.getElementById(`like-${articleId}`);
+        const dislikeBtn = document.getElementById(`dislike-${articleId}`);
+
+        // Toggle logic: if clicking active button, remove feedback (set to 0)
+        let newFeedback = feedback;
+        if ((feedback === 1 && likeBtn.classList.contains('active')) ||
+            (feedback === -1 && dislikeBtn.classList.contains('active'))) {
+            newFeedback = 0;
+        }
+
+        fetch(`/rate_article/${articleId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ feedback: newFeedback })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update UI visually without reload
+                    likeBtn.classList.remove('active', 'btn-success');
+                    likeBtn.classList.add('btn-outline-success');
+                    likeBtn.querySelector('i').classList.replace('bi-hand-thumbs-up-fill', 'bi-hand-thumbs-up');
+
+                    dislikeBtn.classList.remove('active', 'btn-danger');
+                    dislikeBtn.classList.add('btn-outline-danger');
+                    dislikeBtn.querySelector('i').classList.replace('bi-hand-thumbs-down-fill', 'bi-hand-thumbs-down');
+
+                    if (newFeedback === 1) {
+                        likeBtn.classList.add('active', 'btn-success');
+                        likeBtn.classList.remove('btn-outline-success');
+                        likeBtn.querySelector('i').classList.replace('bi-hand-thumbs-up', 'bi-hand-thumbs-up-fill');
+                    } else if (newFeedback === -1) {
+                        dislikeBtn.classList.add('active', 'btn-danger');
+                        dislikeBtn.classList.remove('btn-outline-danger');
+                        dislikeBtn.querySelector('i').classList.replace('bi-hand-thumbs-down', 'bi-hand-thumbs-down-fill');
+                    }
+                } else {
+                    alert('Error submitting feedback: ' + data.message);
+                }
+            });
+    }
 </script>
+
+<!-- Edit Summary Modal -->
+<div class="modal fade" id="editSummaryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Summary</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <textarea id="editSummaryText" class="form-control" rows="15"
+                    style="font-family: monospace;"></textarea>
+                <div class="form-text text-muted mt-2">
+                    Start lines with <code>**</code> for headers, <code>•</code> for bullets, and <code>> "</code> for
+                    quotes.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveSummary()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

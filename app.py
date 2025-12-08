@@ -176,6 +176,44 @@ def add_category():
         db.close()
     return redirect(url_for('admin_categories'))
 
+@app.route('/edit_topic/<int:topic_id>', methods=['POST'])
+def edit_topic(topic_id):
+    name = request.form['name']
+    keywords = request.form['keywords']
+    category_id = request.form.get('category_id')
+    
+    db = SessionLocal()
+    try:
+        topic = db.get(Topic, topic_id)
+        if topic:
+            topic.name = name
+            topic.keywords = keywords
+            topic.category_id = category_id if category_id else None
+            db.commit()
+            flash('Topic updated successfully')
+    finally:
+        db.close()
+    return redirect(url_for('admin_topics'))
+
+@app.route('/edit_category/<int:category_id>', methods=['POST'])
+def edit_category(category_id):
+    name = request.form['name']
+    description = request.form.get('description', '')
+    color = request.form.get('color', '#007bff')
+    
+    db = SessionLocal()
+    try:
+        category = db.get(Category, category_id)
+        if category:
+            category.name = name
+            category.description = description
+            category.color = color
+            db.commit()
+            flash('Category updated successfully')
+    finally:
+        db.close()
+    return redirect(url_for('admin_categories'))
+
 @app.route('/refresh_news')
 def refresh_news():
     def background_refresh():
@@ -319,6 +357,48 @@ def generate_html():
     except Exception as e:
         flash(f'Error generating HTML: {e}')
         return redirect(url_for('dashboard'))
+
+@app.route('/update_summary/<int:article_id>', methods=['POST'])
+def update_summary(article_id):
+    data = request.json
+    new_summary = data.get('summary')
+    
+    if not new_summary:
+        return jsonify({"success": False, "message": "No summary provided"}), 400
+        
+    db = SessionLocal()
+    try:
+        article = db.get(Article, article_id)
+        if article:
+            article.summary = new_summary
+            db.commit()
+            return jsonify({"success": True})
+        return jsonify({"success": False, "message": "Article not found"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+@app.route('/rate_article/<int:article_id>', methods=['POST'])
+def rate_article(article_id):
+    data = request.json
+    feedback = data.get('feedback')  # 1 for like, -1 for dislike, 0 for neutral
+    
+    if feedback not in [1, -1, 0]:
+        return jsonify({"success": False, "message": "Invalid feedback value"}), 400
+        
+    db = SessionLocal()
+    try:
+        article = db.get(Article, article_id)
+        if article:
+            article.user_feedback = feedback
+            db.commit()
+            return jsonify({"success": True})
+        return jsonify({"success": False, "message": "Article not found"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)

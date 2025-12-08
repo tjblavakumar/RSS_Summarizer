@@ -60,22 +60,23 @@ class AIService:
         categories_list = [cat.name for cat in categories]
         categories_text = ", ".join(categories_list)
         
-        prompt = f"""Create executive briefing from this article. Extract comprehensive facts and direct quotes.
+        prompt = f"""Create an executive briefing from this article.
+Merge the key facts, direct quotes, and overall summary into a unified list of 4-5 bulleted statements.
+Include direct quotes as is inside the bullets where relevant.
+Avoid redundant information.
 
 Title: {title}
 Content: {content[:2500]}
 
-Provide up to 5 bullet points with:
-- Key facts with exact numbers, names, dates
-- Direct quotes from officials/sources (use exact wording)
-- Important context and implications
-- No repetitive information
-- Include more substantive content
+Match against Categories: {categories_text}
 
-Categorize: {categories_text}
+Return JSON with:
+- "bullets": list of summary bullets
+- "category": the single best matching category name from the list provided.
+- "relevancy_score": integer (0-100) representing how relevant the article is to that category.
 
 Return JSON:
-{{"summary": "A precise, professional summary of the article (2-3 sentences).", "quotes": ["Direct quote 1", "Direct quote 2"], "highlights": ["Key fact 1", "Key fact 2"], "category": "category_name"}}"""
+{{"bullets": ["Bullet 1", "Bullet 2", ...], "category": "category_name", "relevancy_score": 85}}"""
         
         try:
             payload = {
@@ -94,61 +95,38 @@ Return JSON:
             result = json.loads(response_text)
             
             if isinstance(result, dict):
-                highlights = result.get("highlights", [])
-                if isinstance(highlights, list):
+                bullets = result.get("bullets", [])
+                if isinstance(bullets, list):
                     # Clean up redundant bullets and remove duplicates
-                    cleaned_highlights = []
+                    cleaned_bullets = []
                     seen_content = set()
-                    for h in highlights:
-                        # Remove existing bullet if present
-                        clean_h = h.strip()
-                        if clean_h.startswith('•'):
-                            clean_h = clean_h[1:].strip()
+                    for b in bullets:
+                        # Remove existing bullet char if present
+                        clean_b = b.strip()
+                        if clean_b.startswith('•'):
+                            clean_b = clean_b[1:].strip()
+                        elif clean_b.startswith('-'):
+                            clean_b = clean_b[1:].strip()
                         
                         # Check for duplicates using normalized text
-                        normalized = clean_h.lower().replace('"', '').replace("'", '').strip()
+                        normalized = clean_b.lower().replace('"', '').replace("'", '').strip()
                         if normalized and normalized not in seen_content:
                             seen_content.add(normalized)
-                            cleaned_highlights.append(clean_h)
+                            cleaned_bullets.append(clean_b)
                     
-                    highlights_text = "\n".join([f"• {h}" for h in cleaned_highlights])
+                    full_summary = "\n".join([f"• {b}" for b in cleaned_bullets])
                 else:
-                    highlights_text = str(highlights)
-                    
-                summary_text = result.get("summary", "")
-                quotes = result.get("quotes", [])
-                if isinstance(quotes, list):
-                    quotes_text = "\n".join([f"> \"{q}\"" for q in quotes if q])
-                else:
-                    quotes_text = str(quotes)
-                
-                highlights = result.get("highlights", [])
-                if isinstance(highlights, list):
-                    # Clean up redundant bullets
-                    cleaned_highlights = []
-                    seen_content = set()
-                    for h in highlights:
-                        clean_h = h.strip()
-                        if clean_h.startswith('•'):
-                            clean_h = clean_h[1:].strip()
-                        normalized = clean_h.lower().replace('"', '').replace("'", '').strip()
-                        if normalized and normalized not in seen_content:
-                            seen_content.add(normalized)
-                            cleaned_highlights.append(clean_h)
-                    highlights_text = "\n".join([f"• {h}" for h in cleaned_highlights])
-                else:
-                    highlights_text = str(highlights)
-
-                full_summary = f"{summary_text}\n\n**Key Facts:**\n{highlights_text}\n\n**Quotes:**\n{quotes_text}"
+                    full_summary = str(bullets)
 
                 return {
                     "summary": full_summary,
-                    "quotes": quotes_text,
-                    "category": result.get("category", "")
+                    "quotes": "", 
+                    "category": result.get("category", ""),
+                    "relevancy_score": result.get("relevancy_score", 0)
                 }
         except Exception as e:
             logger.error(f"AI analysis error: {e}")
-        return {"summary": "Analysis failed", "quotes": "", "category": ""}
+        return {"summary": "Analysis failed", "quotes": "", "category": "", "relevancy_score": 0}
 
 class NewsProcessor:
     def __init__(self, api_key=None):
@@ -254,27 +232,34 @@ class NewsProcessor:
                             continue
                         
                         category_name = analysis.get("category", "")
-                        print(f"  -> Category: {category_name}")
+                        relevancy_score = int(analysis.get("relevancy_score", 0))
                         
-                        category = next((c for c in categories if c.name == category_name), categories[0]) if category_name else categories[0]
-                            
-                        # Calculate relevancy score based on category
-                        relevancy_score = 10
-                        cat_lower = category.name.lower()
-                        if "federal reserve" in cat_lower:
-                            relevancy_score = 100
-                        elif "economy" in cat_lower:
-                            relevancy_score = 90
-                        elif "inflation" in cat_lower:
-                            relevancy_score = 80
-                        elif "financial" in cat_lower:
-                            relevancy_score = 70
-                        elif "presidential" in cat_lower:
-                            relevancy_score = 60
-                        elif "tariff" in cat_lower:
-                            relevancy_score = 50
-                        elif "tech" in cat_lower:
-                            relevancy_score = 40
+                        print(f"  -> Category: {category_name} (Score: {relevancy_score})")
+
+                        # Filter articles with low relevancy score
+                        if relevancy_score < 75:
+                            print(f"  -> Skipping: Low relevancy score ({relevancy_score} < 75)")
+                            # We can choose to either not save it, or save it as uncategorized.
+                            # "filter articles that are not relevant to the categories" implies discarding or not mapping.
+                            # User said: "do not map an article to any category if it's relevancy score is less than 75%."
+                            # Usually this means we can leave category_name empty if we still want it, 
+                            # or if "filter articles" means exclude, we skip.
+                            # Given "filter articles" is a strong term, I will skip saving them effectively acting as a filter.
+                            # However, if it's general news, maybe we want it? 
+                            # Let's interpret strict filtering: If not relevant enough to ANY category, discard.
+                            # Wait, the prompt asks for "the single best matching category". 
+                            # If even the best matching is < 75, then it's not relevant to our interests defined by categories.
+                            continue
+                        
+                        category = next((c for c in categories if c.name == category_name), None)
+                        
+                        # If category name returned by AI doesn't match our DB (hallucination), treat as uncategorized or skip?
+                        # If we have a high score but invalid category name, it's weird.
+                        # Using default behavior: if category not found but score is high, maybe fallback?
+                        # But simpler is to rely on AI returning valid category from the list we gave.
+                        
+                        final_category_name = category.name if category else None
+                        final_category_color = category.color if category else None
                             
                         article = Article(
                             title=entry_title,
@@ -284,8 +269,8 @@ class NewsProcessor:
                             author=entry_author,
                             feed_id=feed.id,
                             published_date=published_date,
-                            category_name=category.name,
-                            category_color=category.color,
+                            category_name=final_category_name,
+                            category_color=final_category_color,
                             relevancy_score=relevancy_score
                         )
                         
