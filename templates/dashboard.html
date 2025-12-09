@@ -282,12 +282,12 @@
 
     // Edit Summary Modal Logic
     let currentArticleId = null;
-    const editModal = new bootstrap.Modal(document.getElementById('editSummaryModal'));
 
     function editSummary(articleId) {
         currentArticleId = articleId;
         const rawSummary = document.getElementById(`raw-summary-${articleId}`).value;
         document.getElementById('editSummaryText').value = rawSummary;
+        const editModal = new bootstrap.Modal(document.getElementById('editSummaryModal'));
         editModal.show();
     }
 
