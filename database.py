@@ -47,6 +47,7 @@ class Article(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     category_name = Column(String(100))
     category_color = Column(String(7))
+    user_feedback = Column(Integer, default=0)  # 0: None, 1: Like, -1: Dislike
     
     feed = relationship("Feed")
     topic = relationship("Topic")

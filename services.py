@@ -64,8 +64,10 @@ class AIService:
 Merge the key facts, direct quotes, and overall summary into a unified list of 4-5 bulleted statements.
 Include direct quotes as is inside the bullets where relevant.
 Avoid redundant information.
+Also extract the author name if available in the text.
 
 Title: {title}
+Author: {author}
 Content: {content[:2500]}
 
 Match against Categories: {categories_text}
@@ -74,9 +76,10 @@ Return JSON with:
 - "bullets": list of summary bullets
 - "category": the single best matching category name from the list provided.
 - "relevancy_score": integer (0-100) representing how relevant the article is to that category.
+- "author": extracted author name (use provided Author if valid, otherwise try to extract from Content)
 
 Return JSON:
-{{"bullets": ["Bullet 1", "Bullet 2", ...], "category": "category_name", "relevancy_score": 85}}"""
+{{"bullets": ["Bullet 1", "Bullet 2", ...], "category": "category_name", "relevancy_score": 85, "author": "Author Name"}}"""
         
         try:
             payload = {
@@ -122,7 +125,8 @@ Return JSON:
                     "summary": full_summary,
                     "quotes": "", 
                     "category": result.get("category", ""),
-                    "relevancy_score": result.get("relevancy_score", 0)
+                    "relevancy_score": result.get("relevancy_score", 0),
+                    "author": result.get("author", "")
                 }
         except Exception as e:
             logger.error(f"AI analysis error: {e}")
@@ -195,7 +199,17 @@ class NewsProcessor:
                     try:
                         entry_link = getattr(entry, 'link', '')
                         entry_title = getattr(entry, 'title', 'Untitled')
-                        entry_author = getattr(entry, 'author', '')
+                        
+                        # Type-safe author extraction
+                        entry_author = ''
+                        if hasattr(entry, 'author'):
+                            entry_author = str(entry.author)
+                        elif 'authors' in entry and entry.authors:
+                            entry_author = str(entry.authors[0].get('name', ''))
+                        elif 'dc_creator' in entry:
+                            entry_author = str(entry.dc_creator)
+                        elif 'author_detail' in entry and hasattr(entry.author_detail, 'name'):
+                            entry_author = str(entry.author_detail.name)
                         
                         published_date = datetime.now()
                         if hasattr(entry, 'published_parsed') and entry.published_parsed:
@@ -233,6 +247,12 @@ class NewsProcessor:
                         
                         category_name = analysis.get("category", "")
                         relevancy_score = int(analysis.get("relevancy_score", 0))
+                        ai_author = analysis.get("author", "")
+                        
+                        # Use AI extracted author if original was missing/unknown and AI found one
+                        if (not entry_author or entry_author.lower() in ['unknown', '']) and ai_author and ai_author.lower() != "unknown":
+                            entry_author = ai_author
+                            print(f"  -> Extracted author via AI: {entry_author}")
                         
                         print(f"  -> Category: {category_name} (Score: {relevancy_score})")
 

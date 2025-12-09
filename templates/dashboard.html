@@ -81,17 +81,16 @@
                     </div>
 
                     <!-- Articles in this Category -->
-                    {% for article in category_articles[:5] %}
+                    {% for article in category_articles %}
                     <div class="mb-4 pb-3 border-bottom">
                         <h3 class="mb-2" style="font-size: 1.2em; font-weight: 600;">
                             <a href="{{ article.url }}" target="_blank" class="text-decoration-none text-primary">
-                                {{ article.title }}
+                                [{{ article.feed.name if article.feed else 'Unknown' }}] {{ article.title }}
                             </a>
                         </h3>
 
                         <div class="text-muted mb-3" style="font-size: 0.9em; font-style: italic;">
-                            Source: {{ article.feed.name if article.feed else 'Unknown' }} | Author: {{ article.author
-                            or 'Unknown' }} | Published: {{
+                            Author: {{ article.author or 'Unknown' }} | Published: {{
                             article.published_date.strftime('%Y-%m-%d %H:%M') }}
                         </div>
 
@@ -175,17 +174,16 @@
                         <h2 class="mb-0" style="font-size: 1.5em;">Uncategorized</h2>
                     </div>
 
-                    {% for article in uncategorized[:5] %}
+                    {% for article in uncategorized %}
                     <div class="mb-4 pb-3 border-bottom">
                         <h3 class="mb-2" style="font-size: 1.2em; font-weight: 600;">
                             <a href="{{ article.url }}" target="_blank" class="text-decoration-none text-primary">
-                                {{ article.title }}
+                                [{{ article.feed.name if article.feed else 'Unknown' }}] {{ article.title }}
                             </a>
                         </h3>
 
                         <div class="text-muted mb-3" style="font-size: 0.9em; font-style: italic;">
-                            Source: {{ article.feed.name if article.feed else 'Unknown' }} | Author: {{ article.author
-                            or 'Unknown' }} | Published: {{
+                            Author: {{ article.author or 'Unknown' }} | Published: {{
                             article.published_date.strftime('%Y-%m-%d %H:%M') }}
                         </div>
 
@@ -265,10 +263,7 @@
 </div>
 
 <script>
-    // Auto-refresh dashboard every 10 seconds
-    setInterval(function () {
-        location.reload();
-    }, 10000);
+
 
     // Smooth scroll to category sections
     document.querySelectorAll('a[href^="#category-"]').forEach(anchor => {

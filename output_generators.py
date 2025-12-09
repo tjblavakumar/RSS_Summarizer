@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from sqlalchemy.orm import joinedload
-from database import get_db, Article, Category
+from database import SessionLocal, Article, Category
 
 class OutputGenerator:
     def __init__(self):
@@ -9,7 +9,7 @@ class OutputGenerator:
         os.makedirs(self.output_dir, exist_ok=True)
     
     def generate_markdown(self):
-        db = get_db()
+        db = SessionLocal()
         try:
             articles = db.query(Article).options(joinedload(Article.feed)).order_by(Article.relevancy_score.desc(), Article.published_date.desc()).all()
             
@@ -39,7 +39,7 @@ class OutputGenerator:
             db.close()
     
     def generate_html(self):
-        db = get_db()
+        db = SessionLocal()
         try:
             articles = db.query(Article).options(joinedload(Article.feed)).order_by(Article.relevancy_score.desc(), Article.published_date.desc()).all()
             
