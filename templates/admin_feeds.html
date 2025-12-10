@@ -9,6 +9,9 @@
     <div class="mb-3">
         <input type="url" class="form-control" name="url" placeholder="RSS Feed URL" required>
     </div>
+    <div class="mb-3">
+        <input type="text" class="form-control" name="access_key" placeholder="Access Key (Optional)">
+    </div>
     <button type="submit" class="btn btn-primary">Add Feed</button>
 </form>
 
@@ -16,7 +19,11 @@
     {% for feed in feeds %}
     <div class="list-group-item d-flex justify-content-between align-items-center">
         <div>
-            <strong>{{ feed.name }}</strong><br>
+            <strong>{{ feed.name }}</strong>
+            {% if feed.access_key %}
+            <span class="badge bg-secondary ms-2" title="Access Key Configured"><i class="bi bi-key"></i> Key</span>
+            {% endif %}
+            <br>
             <small class="text-muted"><a href="{{ feed.url }}" target="_blank" class="text-decoration-none">{{ feed.url }}</a></small>
         </div>
         <div>

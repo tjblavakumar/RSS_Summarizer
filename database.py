@@ -11,6 +11,7 @@ class Feed(Base):
     name = Column(String(100), nullable=False)
     url = Column(String(500), nullable=False)
     active = Column(Boolean, default=True)
+    access_key = Column(String(500), nullable=True)
 
 class Category(Base):
     __tablename__ = 'categories'
@@ -46,9 +47,16 @@ class Article(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     category_name = Column(String(100))
     category_color = Column(String(7))
+    user_feedback = Column(Integer, default=0)  # 0: None, 1: Like, -1: Dislike
     
     feed = relationship("Feed")
     topic = relationship("Topic")
+
+class SystemConfig(Base):
+    __tablename__ = 'system_config'
+    key = Column(String(100), primary_key=True)
+    value = Column(Text)
+    description = Column(Text)
 
 # Database setup
 engine = create_engine('sqlite:///news.db', connect_args={'check_same_thread': False})

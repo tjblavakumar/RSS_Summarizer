@@ -28,9 +28,21 @@ class RSSFetcher:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
     
-    def fetch_feed(self, feed_url):
+    def fetch_feed(self, feed_url, access_key=None):
         try:
-            feed = feedparser.parse(feed_url)
+            request_headers = self.headers.copy()
+            if access_key:
+                request_headers['Authorization'] = access_key
+                # Also try adding as API-Key header just in case
+                request_headers['API-Key'] = access_key
+                
+            # Use requests to fetch first if we have custom headers
+            if access_key:
+                response = requests.get(feed_url, headers=request_headers)
+                response.raise_for_status()
+                feed = feedparser.parse(response.content)
+            else:
+                feed = feedparser.parse(feed_url)
             return feed.entries
         except Exception as e:
             logger.error(f"Error fetching feed {feed_url}: {e}")
@@ -48,22 +60,26 @@ class AIService:
         categories_list = [cat.name for cat in categories]
         categories_text = ", ".join(categories_list)
         
-        prompt = f"""Create executive briefing from this article. Extract comprehensive facts and direct quotes.
+        prompt = f"""Create an executive briefing from this article.
+Merge the key facts, direct quotes, and overall summary into a unified list of 4-5 bulleted statements.
+Include direct quotes as is inside the bullets where relevant.
+Avoid redundant information.
+Also extract the author name if available in the text.
 
 Title: {title}
+Author: {author}
 Content: {content[:2500]}
 
-Provide up to 5 bullet points with:
-- Key facts with exact numbers, names, dates
-- Direct quotes from officials/sources (use exact wording)
-- Important context and implications
-- No repetitive information
-- Include more substantive content
+Match against Categories: {categories_text}
 
-Categorize: {categories_text}
+Return JSON with:
+- "bullets": list of summary bullets
+- "category": the single best matching category name from the list provided.
+- "relevancy_score": integer (0-100) representing how relevant the article is to that category.
+- "author": extracted author name (use provided Author if valid, otherwise try to extract from Content)
 
 Return JSON:
-{{"highlights": ["Fact with quote 1", "Fact with quote 2", "Fact 3", "Fact 4", "Fact 5"], "category": "category_name"}}"""
+{{"bullets": ["Bullet 1", "Bullet 2", ...], "category": "category_name", "relevancy_score": 85, "author": "Author Name"}}"""
         
         try:
             payload = {
@@ -82,35 +98,39 @@ Return JSON:
             result = json.loads(response_text)
             
             if isinstance(result, dict):
-                highlights = result.get("highlights", [])
-                if isinstance(highlights, list):
+                bullets = result.get("bullets", [])
+                if isinstance(bullets, list):
                     # Clean up redundant bullets and remove duplicates
-                    cleaned_highlights = []
+                    cleaned_bullets = []
                     seen_content = set()
-                    for h in highlights:
-                        # Remove existing bullet if present
-                        clean_h = h.strip()
-                        if clean_h.startswith('•'):
-                            clean_h = clean_h[1:].strip()
+                    for b in bullets:
+                        # Remove existing bullet char if present
+                        clean_b = b.strip()
+                        if clean_b.startswith('•'):
+                            clean_b = clean_b[1:].strip()
+                        elif clean_b.startswith('-'):
+                            clean_b = clean_b[1:].strip()
                         
                         # Check for duplicates using normalized text
-                        normalized = clean_h.lower().replace('"', '').replace("'", '').strip()
+                        normalized = clean_b.lower().replace('"', '').replace("'", '').strip()
                         if normalized and normalized not in seen_content:
                             seen_content.add(normalized)
-                            cleaned_highlights.append(clean_h)
+                            cleaned_bullets.append(clean_b)
                     
-                    highlights_text = "\n".join([f"• {h}" for h in cleaned_highlights])
+                    full_summary = "\n".join([f"• {b}" for b in cleaned_bullets])
                 else:
-                    highlights_text = str(highlights)
-                    
+                    full_summary = str(bullets)
+
                 return {
-                    "summary": highlights_text,
-                    "quotes": "",
-                    "category": result.get("category", "")
+                    "summary": full_summary,
+                    "quotes": "", 
+                    "category": result.get("category", ""),
+                    "relevancy_score": result.get("relevancy_score", 0),
+                    "author": result.get("author", "")
                 }
         except Exception as e:
             logger.error(f"AI analysis error: {e}")
-        return {"summary": "Analysis failed", "quotes": "", "category": ""}
+        return {"summary": "Analysis failed", "quotes": "", "category": "", "relevancy_score": 0}
 
 class NewsProcessor:
     def __init__(self, api_key=None):
@@ -171,7 +191,7 @@ class NewsProcessor:
             
             for feed in feeds:
                 print(f"\nProcessing feed: {feed.name}")
-                entries = self.rss_fetcher.fetch_feed(feed.url)
+                entries = self.rss_fetcher.fetch_feed(feed.url, feed.access_key)
                 print(f"Found {len(entries)} entries in feed")
                 total_entries += len(entries)
                 
@@ -179,7 +199,17 @@ class NewsProcessor:
                     try:
                         entry_link = getattr(entry, 'link', '')
                         entry_title = getattr(entry, 'title', 'Untitled')
-                        entry_author = getattr(entry, 'author', '')
+                        
+                        # Type-safe author extraction
+                        entry_author = ''
+                        if hasattr(entry, 'author'):
+                            entry_author = str(entry.author)
+                        elif 'authors' in entry and entry.authors:
+                            entry_author = str(entry.authors[0].get('name', ''))
+                        elif 'dc_creator' in entry:
+                            entry_author = str(entry.dc_creator)
+                        elif 'author_detail' in entry and hasattr(entry.author_detail, 'name'):
+                            entry_author = str(entry.author_detail.name)
                         
                         published_date = datetime.now()
                         if hasattr(entry, 'published_parsed') and entry.published_parsed:
@@ -216,9 +246,40 @@ class NewsProcessor:
                             continue
                         
                         category_name = analysis.get("category", "")
-                        print(f"  -> Category: {category_name}")
+                        relevancy_score = int(analysis.get("relevancy_score", 0))
+                        ai_author = analysis.get("author", "")
                         
-                        category = next((c for c in categories if c.name == category_name), categories[0]) if category_name else categories[0]
+                        # Use AI extracted author if original was missing/unknown and AI found one
+                        if (not entry_author or entry_author.lower() in ['unknown', '']) and ai_author and ai_author.lower() != "unknown":
+                            entry_author = ai_author
+                            print(f"  -> Extracted author via AI: {entry_author}")
+                        
+                        print(f"  -> Category: {category_name} (Score: {relevancy_score})")
+
+                        # Filter articles with low relevancy score
+                        if relevancy_score < 75:
+                            print(f"  -> Skipping: Low relevancy score ({relevancy_score} < 75)")
+                            # We can choose to either not save it, or save it as uncategorized.
+                            # "filter articles that are not relevant to the categories" implies discarding or not mapping.
+                            # User said: "do not map an article to any category if it's relevancy score is less than 75%."
+                            # Usually this means we can leave category_name empty if we still want it, 
+                            # or if "filter articles" means exclude, we skip.
+                            # Given "filter articles" is a strong term, I will skip saving them effectively acting as a filter.
+                            # However, if it's general news, maybe we want it? 
+                            # Let's interpret strict filtering: If not relevant enough to ANY category, discard.
+                            # Wait, the prompt asks for "the single best matching category". 
+                            # If even the best matching is < 75, then it's not relevant to our interests defined by categories.
+                            continue
+                        
+                        category = next((c for c in categories if c.name == category_name), None)
+                        
+                        # If category name returned by AI doesn't match our DB (hallucination), treat as uncategorized or skip?
+                        # If we have a high score but invalid category name, it's weird.
+                        # Using default behavior: if category not found but score is high, maybe fallback?
+                        # But simpler is to rely on AI returning valid category from the list we gave.
+                        
+                        final_category_name = category.name if category else None
+                        final_category_color = category.color if category else None
                             
                         article = Article(
                             title=entry_title,
@@ -228,8 +289,9 @@ class NewsProcessor:
                             author=entry_author,
                             feed_id=feed.id,
                             published_date=published_date,
-                            category_name=category.name,
-                            category_color=category.color
+                            category_name=final_category_name,
+                            category_color=final_category_color,
+                            relevancy_score=relevancy_score
                         )
                         
                         db.add(article)

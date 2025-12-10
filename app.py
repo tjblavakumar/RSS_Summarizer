@@ -3,7 +3,9 @@ from dotenv import load_dotenv
 import os
 import threading
 from sqlalchemy.orm import joinedload
-from database import SessionLocal, Feed, Topic, Article, Category
+from database import SessionLocal, Feed, Topic, Article, Category, SystemConfig
+from sqlalchemy import func
+from collections import Counter
 from services import NewsProcessor
 from scheduler import init_scheduler, rss_scheduler
 from output_generators import OutputGenerator
@@ -12,8 +14,19 @@ from datetime import datetime, date
 
 load_dotenv()
 
+import re
+
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this'
+
+def slugify(s):
+    s = str(s).lower().strip()
+    s = re.sub(r'[^\w\s-]', '', s)
+    s = re.sub(r'[\s_-]+', '-', s)
+    s = re.sub(r'^-+|-+$', '', s)
+    return s
+
+app.jinja_env.filters['slugify'] = slugify
 
 # Initialize news processor (no API key needed for AWS Bedrock)
 news_processor = NewsProcessor()
@@ -29,19 +42,28 @@ def dashboard():
         articles = db.query(Article).options(
             joinedload(Article.topic).joinedload(Topic.category),
             joinedload(Article.feed)
-        ).order_by(Article.published_date.desc()).limit(20).all()
+        ).order_by(Article.relevancy_score.desc(), Article.published_date.desc()).limit(200).all()
         
         categories = db.query(Category).filter(Category.active == True).all()
+        
+        total_articles = db.query(Article).count()
+        
         latest_article = db.query(Article).order_by(Article.created_at.desc()).first()
         last_refresh = None
         if latest_article and latest_article.created_at:
             pst = pytz.timezone('US/Pacific')
             last_refresh = latest_article.created_at.replace(tzinfo=pytz.UTC).astimezone(pst)
         
+        # Calculate stats from the actually fetched articles to ensure links match content
+        category_names = [a.category_name for a in articles if a.category_name]
+        category_stats = dict(Counter(category_names))
+        
         return render_template('dashboard.html', 
                              articles=articles, 
                              categories=categories,
-                             last_refresh=last_refresh)
+                             last_refresh=last_refresh,
+                             category_stats=category_stats,
+                             total_articles=total_articles)
     finally:
         db.close()
 
@@ -77,14 +99,44 @@ def admin_categories():
     finally:
         db.close()
 
+@app.route('/admin/llm')
+def admin_llm():
+    db = SessionLocal()
+    try:
+        config_items = db.query(SystemConfig).all()
+        config = {item.key: item.value for item in config_items}
+        return render_template('admin_llm.html', config=config, active_tab='llm')
+    finally:
+        db.close()
+
+@app.route('/update_llm_config', methods=['POST'])
+def update_llm_config():
+    db = SessionLocal()
+    try:
+        config_keys = ['llm_provider', 'llm_api_key', 'llm_model', 'llm_api_base']
+        for key in config_keys:
+            value = request.form.get(key, '')
+            config_item = db.query(SystemConfig).filter(SystemConfig.key == key).first()
+            if config_item:
+                config_item.value = value
+            else:
+                config_item = SystemConfig(key=key, value=value)
+                db.add(config_item)
+        db.commit()
+        flash('LLM configuration updated successfully')
+    finally:
+        db.close()
+    return redirect(url_for('admin_llm'))
+
 @app.route('/add_feed', methods=['POST'])
 def add_feed():
     name = request.form['name']
     url = request.form['url']
+    access_key = request.form.get('access_key')
     
     db = SessionLocal()
     try:
-        feed = Feed(name=name, url=url)
+        feed = Feed(name=name, url=url, access_key=access_key)
         db.add(feed)
         db.commit()
         flash('Feed added successfully')
@@ -120,6 +172,44 @@ def add_category():
         db.add(category)
         db.commit()
         flash('Category added successfully')
+    finally:
+        db.close()
+    return redirect(url_for('admin_categories'))
+
+@app.route('/edit_topic/<int:topic_id>', methods=['POST'])
+def edit_topic(topic_id):
+    name = request.form['name']
+    keywords = request.form['keywords']
+    category_id = request.form.get('category_id')
+    
+    db = SessionLocal()
+    try:
+        topic = db.get(Topic, topic_id)
+        if topic:
+            topic.name = name
+            topic.keywords = keywords
+            topic.category_id = category_id if category_id else None
+            db.commit()
+            flash('Topic updated successfully')
+    finally:
+        db.close()
+    return redirect(url_for('admin_topics'))
+
+@app.route('/edit_category/<int:category_id>', methods=['POST'])
+def edit_category(category_id):
+    name = request.form['name']
+    description = request.form.get('description', '')
+    color = request.form.get('color', '#007bff')
+    
+    db = SessionLocal()
+    try:
+        category = db.get(Category, category_id)
+        if category:
+            category.name = name
+            category.description = description
+            category.color = color
+            db.commit()
+            flash('Category updated successfully')
     finally:
         db.close()
     return redirect(url_for('admin_categories'))
@@ -285,5 +375,47 @@ def generate_date_range_report():
         flash(f'Error generating date range report: {e}')
         return redirect(url_for('admin_scheduler'))
 
+@app.route('/update_summary/<int:article_id>', methods=['POST'])
+def update_summary(article_id):
+    data = request.json
+    new_summary = data.get('summary')
+    
+    if not new_summary:
+        return jsonify({"success": False, "message": "No summary provided"}), 400
+        
+    db = SessionLocal()
+    try:
+        article = db.get(Article, article_id)
+        if article:
+            article.summary = new_summary
+            db.commit()
+            return jsonify({"success": True})
+        return jsonify({"success": False, "message": "Article not found"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
+@app.route('/rate_article/<int:article_id>', methods=['POST'])
+def rate_article(article_id):
+    data = request.json
+    feedback = data.get('feedback')  # 1 for like, -1 for dislike, 0 for neutral
+    
+    if feedback not in [1, -1, 0]:
+        return jsonify({"success": False, "message": "Invalid feedback value"}), 400
+        
+    db = SessionLocal()
+    try:
+        article = db.get(Article, article_id)
+        if article:
+            article.user_feedback = feedback
+            db.commit()
+            return jsonify({"success": True})
+        return jsonify({"success": False, "message": "Article not found"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        db.close()
+
 if __name__ == '__main__':
-    app.run(debug=True, threaded=True)
+    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
