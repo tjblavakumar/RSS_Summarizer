@@ -1,0 +1,9 @@
+{
+  "Parameters": {
+    "commands": [
+      "echo '<h1>RSS Summarizer is LIVE!</h1><p>Successfully deployed on AWS EC2</p>' > /tmp/index.html",
+      "cd /tmp",
+      "sudo nohup python3 -m http.server 80 > /dev/null 2>&1 &"
+    ]
+  }
+}

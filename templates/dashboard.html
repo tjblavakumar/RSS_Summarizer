@@ -90,8 +90,7 @@
                         </h3>
 
                         <div class="text-muted mb-3" style="font-size: 0.9em; font-style: italic;">
-                            Author: {{ article.author or 'Unknown' }} | Published: {{
-                            article.published_date.strftime('%Y-%m-%d %H:%M') }}
+                            Author: {{ (article.rss_metadata.author if article.rss_metadata and article.rss_metadata.get('author') else article.author) or 'Unknown' }} | Published: {{ article.rss_metadata.published_str if article.rss_metadata and article.rss_metadata.get('published_str') else article.published_date.strftime('%Y-%m-%d %I:%M %p') }}
                         </div>
 
                         {% if article.summary %}
@@ -183,8 +182,7 @@
                         </h3>
 
                         <div class="text-muted mb-3" style="font-size: 0.9em; font-style: italic;">
-                            Author: {{ article.author or 'Unknown' }} | Published: {{
-                            article.published_date.strftime('%Y-%m-%d %H:%M') }}
+                            Author: {{ (article.rss_metadata.author if article.rss_metadata and article.rss_metadata.get('author') else article.author) or 'Unknown' }} | Published: {{ article.rss_metadata.published_str if article.rss_metadata and article.rss_metadata.get('published_str') else article.published_date.strftime('%Y-%m-%d %I:%M %p') }}
                         </div>
 
                         {% if article.summary %}
@@ -384,3 +382,5 @@
     </div>
 </div>
 {% endblock %}
+
+

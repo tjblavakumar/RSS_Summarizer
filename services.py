@@ -95,7 +95,24 @@ Return JSON:
             )
             response_body = json.loads(response['body'].read())
             response_text = response_body['content'][0]['text']
-            result = json.loads(response_text)
+            
+            # Clean response text before parsing JSON
+            response_text = response_text.strip()
+            # Remove markdown code blocks if present
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.startswith('```'):
+                response_text = response_text[3:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
+            
+            try:
+                result = json.loads(response_text)
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON parsing error: {e}")
+                logger.error(f"Response text: {response_text[:200]}...")
+                return {"summary": "Analysis failed", "quotes": "", "category": "", "relevancy_score": 0, "author": ""}
             
             if isinstance(result, dict):
                 bullets = result.get("bullets", [])
@@ -211,12 +228,21 @@ class NewsProcessor:
                         elif 'author_detail' in entry and hasattr(entry.author_detail, 'name'):
                             entry_author = str(entry.author_detail.name)
                         
+                        # Store original published string from RSS
+                        published_str = getattr(entry, 'published', '')
+                        
                         published_date = datetime.now()
                         if hasattr(entry, 'published_parsed') and entry.published_parsed:
                             try:
                                 published_date = datetime(*entry.published_parsed[:6])
                             except:
                                 pass
+                        
+                        # Store RSS metadata
+                        rss_metadata = {
+                            'author': entry_author,
+                            'published_str': published_str
+                        }
                         
                         if published_date < cutoff_time:
                             continue
@@ -291,13 +317,14 @@ class NewsProcessor:
                             published_date=published_date,
                             category_name=final_category_name,
                             category_color=final_category_color,
-                            relevancy_score=relevancy_score
+                            relevancy_score=relevancy_score,
+                            rss_metadata=rss_metadata
                         )
                         
                         db.add(article)
                         db.commit()
                         processed_count += 1
-                        print(f"  -> ✓ Article saved! Category: {category.name} ({processed_count} total)")
+                        print(f"  -> [SAVED] Article saved! Category: {category.name} ({processed_count} total)")
                     
                     except Exception as entry_error:
                         logger.error(f"Error processing entry: {entry_error}")

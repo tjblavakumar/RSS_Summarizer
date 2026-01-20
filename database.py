@@ -8,15 +8,15 @@ class Base(DeclarativeBase):
 class Feed(Base):
     __tablename__ = 'feeds'
     id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False)
-    url = Column(String(500), nullable=False)
+    name = Column(String(100), nullable=False, unique=True)
+    url = Column(String(500), nullable=False, unique=True)
     active = Column(Boolean, default=True)
     access_key = Column(String(500), nullable=True)
 
 class Category(Base):
     __tablename__ = 'categories'
     id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False)
+    name = Column(String(100), nullable=False, unique=True)
     description = Column(Text)
     color = Column(String(7), default='#007bff')  # Hex color code
     active = Column(Boolean, default=True)
@@ -24,7 +24,7 @@ class Category(Base):
 class Topic(Base):
     __tablename__ = 'topics'
     id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False)
+    name = Column(String(100), nullable=False, unique=True)
     keywords = Column(Text, nullable=False)
     category_id = Column(Integer, ForeignKey('categories.id'))
     active = Column(Boolean, default=True)
@@ -48,6 +48,7 @@ class Article(Base):
     category_name = Column(String(100))
     category_color = Column(String(7))
     user_feedback = Column(Integer, default=0)  # 0: None, 1: Like, -1: Dislike
+    rss_metadata = Column(JSON)  # Store original RSS metadata (author, published_date_str, etc.)
     
     feed = relationship("Feed")
     topic = relationship("Topic")

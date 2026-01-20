@@ -9,6 +9,7 @@ from collections import Counter
 from services import NewsProcessor
 from scheduler import init_scheduler, rss_scheduler
 from output_generators import OutputGenerator
+from populate_db import populate_database
 import pytz
 from datetime import datetime
 
@@ -18,6 +19,9 @@ import re
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this'
+
+# Initialize database with default data if empty
+populate_database()
 
 def slugify(s):
     s = str(s).lower().strip()
@@ -136,10 +140,24 @@ def add_feed():
     
     db = SessionLocal()
     try:
+        # Check for duplicates
+        existing_name = db.query(Feed).filter(Feed.name == name).first()
+        if existing_name:
+            flash(f'Feed name "{name}" already exists', 'error')
+            return redirect(url_for('admin_feeds'))
+        
+        existing_url = db.query(Feed).filter(Feed.url == url).first()
+        if existing_url:
+            flash(f'Feed URL already exists', 'error')
+            return redirect(url_for('admin_feeds'))
+        
         feed = Feed(name=name, url=url, access_key=access_key)
         db.add(feed)
         db.commit()
-        flash('Feed added successfully')
+        flash('Feed added successfully', 'success')
+    except Exception as e:
+        db.rollback()
+        flash(f'Error adding feed: {str(e)}', 'error')
     finally:
         db.close()
     return redirect(url_for('admin_feeds'))
@@ -152,10 +170,24 @@ def add_topic():
     
     db = SessionLocal()
     try:
+        # Validate keywords
+        if not keywords or not keywords.strip():
+            flash('Keywords cannot be empty', 'error')
+            return redirect(url_for('admin_topics'))
+        
+        # Check for duplicate name
+        existing = db.query(Topic).filter(Topic.name == name).first()
+        if existing:
+            flash(f'Topic "{name}" already exists', 'error')
+            return redirect(url_for('admin_topics'))
+        
         topic = Topic(name=name, keywords=keywords, category_id=category_id if category_id else None)
         db.add(topic)
         db.commit()
-        flash('Topic added successfully')
+        flash('Topic added successfully', 'success')
+    except Exception as e:
+        db.rollback()
+        flash(f'Error adding topic: {str(e)}', 'error')
     finally:
         db.close()
     return redirect(url_for('admin_topics'))
@@ -168,10 +200,19 @@ def add_category():
     
     db = SessionLocal()
     try:
+        # Check for duplicate name
+        existing = db.query(Category).filter(Category.name == name).first()
+        if existing:
+            flash(f'Category "{name}" already exists', 'error')
+            return redirect(url_for('admin_categories'))
+        
         category = Category(name=name, description=description, color=color)
         db.add(category)
         db.commit()
-        flash('Category added successfully')
+        flash('Category added successfully', 'success')
+    except Exception as e:
+        db.rollback()
+        flash(f'Error adding category: {str(e)}', 'error')
     finally:
         db.close()
     return redirect(url_for('admin_categories'))
@@ -401,4 +442,4 @@ def rate_article(article_id):
         db.close()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+    app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
