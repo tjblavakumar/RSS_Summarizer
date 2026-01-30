@@ -1,0 +1,142 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="C4 - Level 3: Component" id="component">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <mxCell id="title" value="Flask Web Application - Component Diagram (EC2 Deployment)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="500" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="alb" value="&lt;b&gt;ALB&lt;/b&gt;&lt;br&gt;[Load Balancer]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9900;strokeColor=none;fontColor=#FFFFFF;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="80" y="140" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ec2_boundary" value="EC2 Instance (Private Subnet)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#FF9900;strokeWidth=3;verticalAlign=top;fontSize=16;fontStyle=1;dashed=1;dashPattern=8 8;" vertex="1" parent="1">
+          <mxGeometry x="280" y="80" width="1240" height="860" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flask_boundary" value="Flask Web Application [Container]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#1168BD;strokeWidth=3;verticalAlign=top;fontSize=15;fontStyle=1;dashed=1;dashPattern=8 8;" vertex="1" parent="1">
+          <mxGeometry x="320" y="120" width="1160" height="780" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="routes" value="&lt;b&gt;Flask Routes&lt;/b&gt;&lt;br&gt;[app.py]&lt;br&gt;&lt;br&gt;Dashboard, admin endpoints" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;strokeColor=none;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="180" width="180" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="templates" value="&lt;b&gt;Templates&lt;/b&gt;&lt;br&gt;[Jinja2]&lt;br&gt;&lt;br&gt;HTML views" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;strokeColor=none;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="340" width="180" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="news_processor" value="&lt;b&gt;News Processor&lt;/b&gt;&lt;br&gt;[services.py]&lt;br&gt;&lt;br&gt;Orchestrates pipeline" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;strokeColor=none;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="600" y="180" width="180" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="rss_service" value="&lt;b&gt;RSS Fetcher&lt;/b&gt;&lt;br&gt;[services.py]&lt;br&gt;&lt;br&gt;Parses RSS feeds" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;strokeColor=none;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="840" y="180" width="180" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="scraper" value="&lt;b&gt;Content Scraper&lt;/b&gt;&lt;br&gt;[services.py]&lt;br&gt;&lt;br&gt;Extracts full articles" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;strokeColor=none;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="180" width="180" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ai_analyzer" value="&lt;b&gt;AI Analyzer&lt;/b&gt;&lt;br&gt;[services.py]&lt;br&gt;&lt;br&gt;Bedrock integration" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;strokeColor=none;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="840" y="340" width="180" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="feed_model" value="&lt;b&gt;Feed Model&lt;/b&gt;&lt;br&gt;[database.py]&lt;br&gt;&lt;br&gt;RSS feed entity" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;strokeColor=none;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="540" width="160" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="topic_model" value="&lt;b&gt;Topic Model&lt;/b&gt;&lt;br&gt;[database.py]&lt;br&gt;&lt;br&gt;Topic with keywords" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;strokeColor=none;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="540" width="160" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="article_model" value="&lt;b&gt;Article Model&lt;/b&gt;&lt;br&gt;[database.py]&lt;br&gt;&lt;br&gt;Article with scores" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;strokeColor=none;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="760" y="540" width="160" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="sqlite" value="&lt;b&gt;SQLite Database&lt;/b&gt;&lt;br&gt;[news.db]&lt;br&gt;&lt;br&gt;Local file storage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1168BD;strokeColor=none;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="520" y="740" width="200" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="bedrock" value="&lt;b&gt;AWS Bedrock&lt;/b&gt;&lt;br&gt;[Managed Service]&lt;br&gt;&lt;br&gt;Claude 3 Haiku" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9900;strokeColor=none;fontColor=#FFFFFF;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="340" width="180" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="igw" value="&lt;b&gt;Internet Gateway&lt;/b&gt;&lt;br&gt;[IGW]&lt;br&gt;&lt;br&gt;RSS feed access" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9900;strokeColor=none;fontColor=#FFFFFF;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="180" width="180" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeWidth=2;strokeColor=#707070;" edge="1" parent="1" source="alb" target="routes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=2;strokeColor=#707070;" edge="1" parent="1" source="routes" target="templates">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeWidth=2;strokeColor=#707070;" edge="1" parent="1" source="routes" target="news_processor">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeWidth=2;strokeColor=#707070;" edge="1" parent="1" source="news_processor" target="rss_service">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=2;strokeColor=#707070;" edge="1" parent="1" source="news_processor" target="ai_analyzer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="690" y="310" />
+              <mxPoint x="930" y="310" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="r6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeWidth=2;strokeColor=#707070;" edge="1" parent="1" source="rss_service" target="scraper">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeWidth=2;strokeColor=#707070;" edge="1" parent="1" source="ai_analyzer" target="bedrock">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeWidth=2;strokeColor=#707070;" edge="1" parent="1" source="scraper" target="igw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.25;entryY=0;strokeWidth=2;strokeColor=#707070;dashed=1;" edge="1" parent="1" source="feed_model" target="sqlite">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=2;strokeColor=#707070;dashed=1;" edge="1" parent="1" source="topic_model" target="sqlite">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.75;entryY=0;strokeWidth=2;strokeColor=#707070;dashed=1;" edge="1" parent="1" source="article_model" target="sqlite">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=2;strokeColor=#707070;" edge="1" parent="1" source="routes" target="feed_model">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="450" y="480" />
+              <mxPoint x="440" y="480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="r13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=2;strokeColor=#707070;" edge="1" parent="1" source="news_processor" target="article_model">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="690" y="480" />
+              <mxPoint x="840" y="480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
