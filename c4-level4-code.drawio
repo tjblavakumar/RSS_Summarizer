@@ -1,0 +1,136 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="C4 - Level 4: Code" id="code">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <mxCell id="title" value="Daily News AI Assistant - Code Level (Class Diagram)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="500" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="feed_class" value="&lt;&lt;Entity&gt;&gt;&lt;br&gt;&lt;b&gt;Feed&lt;/b&gt;&lt;hr&gt;+ id: Integer&lt;br&gt;+ name: String(100)&lt;br&gt;+ url: String(500)&lt;br&gt;+ active: Boolean&lt;br&gt;+ access_key: String(500)&lt;hr&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="80" y="100" width="200" height="140" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="category_class" value="&lt;&lt;Entity&gt;&gt;&lt;br&gt;&lt;b&gt;Category&lt;/b&gt;&lt;hr&gt;+ id: Integer&lt;br&gt;+ name: String(100)&lt;br&gt;+ description: Text&lt;br&gt;+ color: String(7)&lt;br&gt;+ active: Boolean&lt;hr&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="320" y="100" width="200" height="140" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="topic_class" value="&lt;&lt;Entity&gt;&gt;&lt;br&gt;&lt;b&gt;Topic&lt;/b&gt;&lt;hr&gt;+ id: Integer&lt;br&gt;+ name: String(100)&lt;br&gt;+ keywords: Text&lt;br&gt;+ category_id: Integer&lt;br&gt;+ active: Boolean&lt;hr&gt;+ category: Category" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="560" y="100" width="200" height="160" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="article_class" value="&lt;&lt;Entity&gt;&gt;&lt;br&gt;&lt;b&gt;Article&lt;/b&gt;&lt;hr&gt;+ id: Integer&lt;br&gt;+ title: String(500)&lt;br&gt;+ url: String(1000)&lt;br&gt;+ content: Text&lt;br&gt;+ summary: Text&lt;br&gt;+ author: String(200)&lt;br&gt;+ relevancy_score: Integer&lt;br&gt;+ topic_scores: JSON&lt;br&gt;+ feed_id: Integer&lt;br&gt;+ topic_id: Integer&lt;br&gt;+ published_date: DateTime&lt;br&gt;+ created_at: DateTime&lt;br&gt;+ category_name: String(100)&lt;br&gt;+ category_color: String(7)&lt;br&gt;+ user_feedback: Integer&lt;br&gt;+ rss_metadata: JSON&lt;hr&gt;+ feed: Feed&lt;br&gt;+ topic: Topic" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="80" y="300" width="240" height="380" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="rss_fetcher_class" value="&lt;&lt;Service&gt;&gt;&lt;br&gt;&lt;b&gt;RSSFetcher&lt;/b&gt;&lt;hr&gt;- headers: Dict&lt;hr&gt;+ __init__()&lt;br&gt;+ fetch_feed(url, key): List&lt;br&gt;+ get_article_content(entry): String" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F57F17;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="800" y="100" width="280" height="140" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ai_service_class" value="&lt;&lt;Service&gt;&gt;&lt;br&gt;&lt;b&gt;AIService&lt;/b&gt;&lt;hr&gt;- bedrock_client: BedrockClient&lt;br&gt;- model_id: String&lt;hr&gt;+ __init__(api_key)&lt;br&gt;+ analyze_article(title, author,&lt;br&gt;    content, url, categories): Dict&lt;br&gt;  Returns: {summary, quotes,&lt;br&gt;           category, relevancy_score,&lt;br&gt;           author}" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F57F17;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="100" width="320" height="180" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="news_processor_class" value="&lt;&lt;Service&gt;&gt;&lt;br&gt;&lt;b&gt;NewsProcessor&lt;/b&gt;&lt;hr&gt;- rss_fetcher: RSSFetcher&lt;br&gt;- ai_service: AIService&lt;br&gt;- processing: Boolean&lt;hr&gt;+ __init__(api_key)&lt;br&gt;+ cleanup_old_articles(): Integer&lt;br&gt;+ clear_all_articles(): Integer&lt;br&gt;+ process_feeds(): String&lt;br&gt;  - Fetches RSS entries&lt;br&gt;  - Analyzes with AI&lt;br&gt;  - Filters by relevancy (75%)&lt;br&gt;  - Saves to database" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F57F17;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="800" y="300" width="280" height="240" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flask_routes" value="&lt;&lt;Controller&gt;&gt;&lt;br&gt;&lt;b&gt;Flask Routes (app.py)&lt;/b&gt;&lt;hr&gt;+ dashboard(): HTML&lt;br&gt;+ admin_feeds(): HTML&lt;br&gt;+ admin_topics(): HTML&lt;br&gt;+ admin_categories(): HTML&lt;br&gt;+ refresh_news(): JSON&lt;br&gt;+ add_feed(): JSON&lt;br&gt;+ delete_feed(id): JSON&lt;br&gt;+ add_topic(): JSON&lt;br&gt;+ delete_topic(id): JSON&lt;br&gt;+ add_category(): JSON&lt;br&gt;+ article_feedback(id): JSON" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#1B5E20;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="320" width="280" height="260" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="sqlalchemy_orm" value="&lt;&lt;Framework&gt;&gt;&lt;br&gt;&lt;b&gt;SQLAlchemy ORM&lt;/b&gt;&lt;hr&gt;SessionLocal&lt;br&gt;get_db()" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#4A148C;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="360" y="300" width="200" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="boto3_client" value="&lt;&lt;External&gt;&gt;&lt;br&gt;&lt;b&gt;Boto3 BedrockClient&lt;/b&gt;&lt;hr&gt;invoke_model()" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="620" width="240" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="feedparser_lib" value="&lt;&lt;External&gt;&gt;&lt;br&gt;&lt;b&gt;feedparser&lt;/b&gt;&lt;hr&gt;parse(url)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="800" y="620" width="200" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r1" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=1;strokeColor=#666666;endArrow=diamondThin;endFill=1;startArrow=none;startFill=0;fontSize=10;" edge="1" parent="1" source="feed_class" target="article_class">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="270" />
+              <mxPoint x="200" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="r2" value="*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.25;strokeWidth=1;strokeColor=#666666;endArrow=none;endFill=0;startArrow=diamondThin;startFill=0;fontSize=10;" edge="1" parent="1" source="topic_class" target="category_class">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r3" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="news_processor_class" target="rss_fetcher_class">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="940" y="560" />
+              <mxPoint x="940" y="580" />
+              <mxPoint x="940" y="580" />
+              <mxPoint x="940" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="r4" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.25;entryX=0;entryY=0.5;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="news_processor_class" target="ai_service_class">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r5" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="news_processor_class" target="sqlalchemy_orm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r6" value="calls" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="flask_routes" target="news_processor_class">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1260" y="600" />
+              <mxPoint x="1100" y="600" />
+              <mxPoint x="1100" y="280" />
+              <mxPoint x="940" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="r7" value="queries" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.75;entryX=1;entryY=0.25;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="flask_routes" target="sqlalchemy_orm">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="515" />
+              <mxPoint x="1100" y="325" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="r8" value="invokes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="ai_service_class" target="boto3_client">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1280" y="600" />
+              <mxPoint x="1240" y="600" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="r9" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="rss_fetcher_class" target="feedparser_lib">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r10" value="manages" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.75;entryX=1;entryY=0.5;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="sqlalchemy_orm" target="article_class">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend" value="&lt;b&gt;Legend&lt;/b&gt;&lt;hr&gt;Entity: Database models&lt;br&gt;Service: Business logic&lt;br&gt;Controller: HTTP endpoints&lt;br&gt;Framework: ORM layer&lt;br&gt;External: Third-party libs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#37474F;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="360" y="440" width="200" height="140" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="note1" value="Key Flow:&lt;br&gt;1. Flask routes trigger NewsProcessor&lt;br&gt;2. NewsProcessor uses RSSFetcher&lt;br&gt;3. AIService analyzes via Bedrock&lt;br&gt;4. Articles saved if relevancy ≥ 75%&lt;br&gt;5. SQLAlchemy persists to SQLite" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;align=left;verticalAlign=top;fontSize=10;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="360" y="620" width="280" height="120" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
