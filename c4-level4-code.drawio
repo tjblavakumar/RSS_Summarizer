@@ -1,78 +1,145 @@
 <mxfile host="app.diagrams.net">
-  <diagram name="C4 - Level 4: Code" id="code">
-    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200">
+  <diagram name="C4 - Level 4: Code with Okta IDP" id="code">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1300">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         
-        <mxCell id="title" value="Daily News AI Assistant - Code Level (Class Diagram)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="500" y="20" width="600" height="40" as="geometry" />
+        <mxCell id="title" value="Daily News AI Assistant - Code Level with Okta IDP (Class Diagram)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="450" y="20" width="700" height="40" as="geometry" />
         </mxCell>
         
+        <!-- Auth Classes -->
+        <mxCell id="okta_config" value="&lt;&lt;Configuration&gt;&gt;&lt;br&gt;&lt;b&gt;OktaConfig&lt;/b&gt;&lt;hr&gt;+ OKTA_DOMAIN: String&lt;br&gt;+ CLIENT_ID: String&lt;br&gt;+ CLIENT_SECRET: String&lt;br&gt;+ ISSUER: String&lt;br&gt;+ REDIRECT_URI: String&lt;br&gt;+ SCOPES: List[String]&lt;hr&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8DAEF;strokeColor=#6C3483;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="80" y="100" width="220" height="170" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="okta_middleware_class" value="&lt;&lt;Middleware&gt;&gt;&lt;br&gt;&lt;b&gt;OktaOIDCMiddleware&lt;/b&gt;&lt;hr&gt;- okta_config: OktaConfig&lt;br&gt;- jwks_client: PyJWKClient&lt;hr&gt;+ __init__(app, config)&lt;br&gt;+ login(): Redirect&lt;br&gt;+ callback(): Session&lt;br&gt;+ logout(): Redirect&lt;br&gt;+ validate_token(token): Dict&lt;br&gt;+ get_user_roles(claims): List&lt;br&gt;+ is_authenticated(): Boolean" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8DAEF;strokeColor=#6C3483;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="80" y="310" width="280" height="200" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="role_guard_class" value="&lt;&lt;Decorator&gt;&gt;&lt;br&gt;&lt;b&gt;RoleGuard&lt;/b&gt;&lt;hr&gt;+ Roles: Enum {ADMIN, USER}&lt;hr&gt;+ require_role(role): Decorator&lt;br&gt;+ require_admin(): Decorator&lt;br&gt;+ require_authenticated(): Decorator&lt;br&gt;+ get_current_user(): UserSession" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8DAEF;strokeColor=#6C3483;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="80" y="550" width="280" height="140" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="user_session_class" value="&lt;&lt;ValueObject&gt;&gt;&lt;br&gt;&lt;b&gt;UserSession&lt;/b&gt;&lt;hr&gt;+ email: String&lt;br&gt;+ name: String&lt;br&gt;+ role: Roles&lt;br&gt;+ okta_id: String&lt;br&gt;+ groups: List[String]&lt;hr&gt;+ is_admin(): Boolean" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8DAEF;strokeColor=#6C3483;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="80" y="730" width="220" height="160" as="geometry" />
+        </mxCell>
+        
+        <!-- Entity Classes -->
         <mxCell id="feed_class" value="&lt;&lt;Entity&gt;&gt;&lt;br&gt;&lt;b&gt;Feed&lt;/b&gt;&lt;hr&gt;+ id: Integer&lt;br&gt;+ name: String(100)&lt;br&gt;+ url: String(500)&lt;br&gt;+ active: Boolean&lt;br&gt;+ access_key: String(500)&lt;hr&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
-          <mxGeometry x="80" y="100" width="200" height="140" as="geometry" />
+          <mxGeometry x="440" y="100" width="200" height="140" as="geometry" />
         </mxCell>
         
         <mxCell id="category_class" value="&lt;&lt;Entity&gt;&gt;&lt;br&gt;&lt;b&gt;Category&lt;/b&gt;&lt;hr&gt;+ id: Integer&lt;br&gt;+ name: String(100)&lt;br&gt;+ description: Text&lt;br&gt;+ color: String(7)&lt;br&gt;+ active: Boolean&lt;hr&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
-          <mxGeometry x="320" y="100" width="200" height="140" as="geometry" />
+          <mxGeometry x="680" y="100" width="200" height="140" as="geometry" />
         </mxCell>
         
         <mxCell id="topic_class" value="&lt;&lt;Entity&gt;&gt;&lt;br&gt;&lt;b&gt;Topic&lt;/b&gt;&lt;hr&gt;+ id: Integer&lt;br&gt;+ name: String(100)&lt;br&gt;+ keywords: Text&lt;br&gt;+ category_id: Integer&lt;br&gt;+ active: Boolean&lt;hr&gt;+ category: Category" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
-          <mxGeometry x="560" y="100" width="200" height="160" as="geometry" />
+          <mxGeometry x="920" y="100" width="200" height="160" as="geometry" />
         </mxCell>
         
         <mxCell id="article_class" value="&lt;&lt;Entity&gt;&gt;&lt;br&gt;&lt;b&gt;Article&lt;/b&gt;&lt;hr&gt;+ id: Integer&lt;br&gt;+ title: String(500)&lt;br&gt;+ url: String(1000)&lt;br&gt;+ content: Text&lt;br&gt;+ summary: Text&lt;br&gt;+ author: String(200)&lt;br&gt;+ relevancy_score: Integer&lt;br&gt;+ topic_scores: JSON&lt;br&gt;+ feed_id: Integer&lt;br&gt;+ topic_id: Integer&lt;br&gt;+ published_date: DateTime&lt;br&gt;+ created_at: DateTime&lt;br&gt;+ category_name: String(100)&lt;br&gt;+ category_color: String(7)&lt;br&gt;+ user_feedback: Integer&lt;br&gt;+ rss_metadata: JSON&lt;hr&gt;+ feed: Feed&lt;br&gt;+ topic: Topic" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
-          <mxGeometry x="80" y="300" width="240" height="380" as="geometry" />
+          <mxGeometry x="440" y="300" width="240" height="380" as="geometry" />
         </mxCell>
         
+        <!-- Service Classes -->
         <mxCell id="rss_fetcher_class" value="&lt;&lt;Service&gt;&gt;&lt;br&gt;&lt;b&gt;RSSFetcher&lt;/b&gt;&lt;hr&gt;- headers: Dict&lt;hr&gt;+ __init__()&lt;br&gt;+ fetch_feed(url, key): List&lt;br&gt;+ get_article_content(entry): String" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F57F17;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
-          <mxGeometry x="800" y="100" width="280" height="140" as="geometry" />
+          <mxGeometry x="1160" y="100" width="280" height="140" as="geometry" />
         </mxCell>
         
         <mxCell id="ai_service_class" value="&lt;&lt;Service&gt;&gt;&lt;br&gt;&lt;b&gt;AIService&lt;/b&gt;&lt;hr&gt;- bedrock_client: BedrockClient&lt;br&gt;- model_id: String&lt;hr&gt;+ __init__(api_key)&lt;br&gt;+ analyze_article(title, author,&lt;br&gt;    content, url, categories): Dict&lt;br&gt;  Returns: {summary, quotes,&lt;br&gt;           category, relevancy_score,&lt;br&gt;           author}" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F57F17;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
-          <mxGeometry x="1120" y="100" width="320" height="180" as="geometry" />
+          <mxGeometry x="1480" y="100" width="280" height="180" as="geometry" />
         </mxCell>
         
         <mxCell id="news_processor_class" value="&lt;&lt;Service&gt;&gt;&lt;br&gt;&lt;b&gt;NewsProcessor&lt;/b&gt;&lt;hr&gt;- rss_fetcher: RSSFetcher&lt;br&gt;- ai_service: AIService&lt;br&gt;- processing: Boolean&lt;hr&gt;+ __init__(api_key)&lt;br&gt;+ cleanup_old_articles(): Integer&lt;br&gt;+ clear_all_articles(): Integer&lt;br&gt;+ process_feeds(): String&lt;br&gt;  - Fetches RSS entries&lt;br&gt;  - Analyzes with AI&lt;br&gt;  - Filters by relevancy (75%)&lt;br&gt;  - Saves to database" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F57F17;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
-          <mxGeometry x="800" y="300" width="280" height="240" as="geometry" />
+          <mxGeometry x="1160" y="300" width="280" height="240" as="geometry" />
         </mxCell>
         
-        <mxCell id="flask_routes" value="&lt;&lt;Controller&gt;&gt;&lt;br&gt;&lt;b&gt;Flask Routes (app.py)&lt;/b&gt;&lt;hr&gt;+ dashboard(): HTML&lt;br&gt;+ admin_feeds(): HTML&lt;br&gt;+ admin_topics(): HTML&lt;br&gt;+ admin_categories(): HTML&lt;br&gt;+ refresh_news(): JSON&lt;br&gt;+ add_feed(): JSON&lt;br&gt;+ delete_feed(id): JSON&lt;br&gt;+ add_topic(): JSON&lt;br&gt;+ delete_topic(id): JSON&lt;br&gt;+ add_category(): JSON&lt;br&gt;+ article_feedback(id): JSON" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#1B5E20;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
-          <mxGeometry x="1120" y="320" width="280" height="260" as="geometry" />
+        <!-- Controller Classes -->
+        <mxCell id="dashboard_controller" value="&lt;&lt;Controller&gt;&gt;&lt;br&gt;&lt;b&gt;Dashboard Routes (app.py)&lt;/b&gt;&lt;br&gt;[Requires: user or admin role]&lt;hr&gt;+ dashboard(): HTML&lt;br&gt;+ article_feedback(id): JSON&lt;br&gt;+ generate_markdown(): File&lt;br&gt;+ generate_html(): File" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#1B5E20;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="1480" y="320" width="280" height="140" as="geometry" />
         </mxCell>
         
+        <mxCell id="admin_controller" value="&lt;&lt;Controller&gt;&gt;&lt;br&gt;&lt;b&gt;Admin Console Routes (app.py)&lt;/b&gt;&lt;br&gt;[Requires: admin role only]&lt;hr&gt;+ admin(): HTML&lt;br&gt;+ admin_feeds(): HTML&lt;br&gt;+ admin_topics(): HTML&lt;br&gt;+ admin_categories(): HTML&lt;br&gt;+ admin_llm(): HTML&lt;br&gt;+ admin_scheduler(): HTML&lt;br&gt;+ add_feed(): JSON&lt;br&gt;+ add_topic(): JSON&lt;br&gt;+ add_category(): JSON&lt;br&gt;+ delete_feed(id): JSON&lt;br&gt;+ delete_topic(id): JSON&lt;br&gt;+ delete_category(id): JSON&lt;br&gt;+ refresh_news(): JSON&lt;br&gt;+ clear_all_news(): JSON&lt;br&gt;+ update_llm_config(): JSON&lt;br&gt;+ update_schedule(): JSON" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#1B5E20;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="1480" y="500" width="280" height="340" as="geometry" />
+        </mxCell>
+        
+        <!-- Auth Routes -->
+        <mxCell id="auth_controller" value="&lt;&lt;Controller&gt;&gt;&lt;br&gt;&lt;b&gt;Auth Routes (auth.py)&lt;/b&gt;&lt;hr&gt;+ login(): Redirect to Okta&lt;br&gt;+ callback(): Process OIDC&lt;br&gt;+ logout(): Clear session&lt;br&gt;+ unauthorized(): 403 page" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8DAEF;strokeColor=#6C3483;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="80" y="930" width="280" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- Framework -->
         <mxCell id="sqlalchemy_orm" value="&lt;&lt;Framework&gt;&gt;&lt;br&gt;&lt;b&gt;SQLAlchemy ORM&lt;/b&gt;&lt;hr&gt;SessionLocal&lt;br&gt;get_db()" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#4A148C;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
-          <mxGeometry x="360" y="300" width="200" height="100" as="geometry" />
+          <mxGeometry x="720" y="300" width="200" height="100" as="geometry" />
         </mxCell>
         
+        <!-- External -->
         <mxCell id="boto3_client" value="&lt;&lt;External&gt;&gt;&lt;br&gt;&lt;b&gt;Boto3 BedrockClient&lt;/b&gt;&lt;hr&gt;invoke_model()" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
-          <mxGeometry x="1120" y="620" width="240" height="100" as="geometry" />
+          <mxGeometry x="1480" y="880" width="240" height="100" as="geometry" />
         </mxCell>
         
         <mxCell id="feedparser_lib" value="&lt;&lt;External&gt;&gt;&lt;br&gt;&lt;b&gt;feedparser&lt;/b&gt;&lt;hr&gt;parse(url)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
-          <mxGeometry x="800" y="620" width="200" height="100" as="geometry" />
+          <mxGeometry x="1160" y="600" width="200" height="100" as="geometry" />
         </mxCell>
         
+        <mxCell id="okta_sdk" value="&lt;&lt;External&gt;&gt;&lt;br&gt;&lt;b&gt;Okta OIDC SDK&lt;/b&gt;&lt;hr&gt;PyJWKClient&lt;br&gt;jwt.decode()&lt;br&gt;OAuth2Session" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="440" y="730" width="200" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- Relationships -->
         <mxCell id="r1" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=1;strokeColor=#666666;endArrow=diamondThin;endFill=1;startArrow=none;startFill=0;fontSize=10;" edge="1" parent="1" source="feed_class" target="article_class">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="180" y="270" />
-              <mxPoint x="200" y="270" />
-            </Array>
-          </mxGeometry>
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         
         <mxCell id="r2" value="*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.25;strokeWidth=1;strokeColor=#666666;endArrow=none;endFill=0;startArrow=diamondThin;startFill=0;fontSize=10;" edge="1" parent="1" source="topic_class" target="category_class">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         
-        <mxCell id="r3" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="news_processor_class" target="rss_fetcher_class">
+        <mxCell id="r_mw_config" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;strokeWidth=1;strokeColor=#6C3483;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="okta_middleware_class" target="okta_config">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r_mw_guard" value="delegates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=1;strokeColor=#6C3483;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="okta_middleware_class" target="role_guard_class">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r_guard_session" value="creates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=1;strokeColor=#6C3483;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="role_guard_class" target="user_session_class">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r_mw_sdk" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.75;entryX=0;entryY=0.5;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="okta_middleware_class" target="okta_sdk">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="r_guard_dash" value="protects" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.25;entryX=0;entryY=0.5;strokeWidth=1;strokeColor=#6C3483;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="role_guard_class" target="dashboard_controller">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="940" y="560" />
-              <mxPoint x="940" y="580" />
-              <mxPoint x="940" y="580" />
-              <mxPoint x="940" y="260" />
+              <mxPoint x="400" y="585" />
+              <mxPoint x="400" y="390" />
+              <mxPoint x="1460" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="r_guard_admin" value="protects (admin)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.75;entryX=0;entryY=0.15;strokeWidth=1;strokeColor=#6C3483;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="role_guard_class" target="admin_controller">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="655" />
+              <mxPoint x="420" y="551" />
+              <mxPoint x="1460" y="551" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="r3" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="news_processor_class" target="rss_fetcher_class">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1140" y="420" />
+              <mxPoint x="1140" y="280" />
+              <mxPoint x="1460" y="280" />
+              <mxPoint x="1460" y="170" />
             </Array>
           </mxGeometry>
         </mxCell>
@@ -85,33 +152,22 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         
-        <mxCell id="r6" value="calls" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="flask_routes" target="news_processor_class">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1260" y="600" />
-              <mxPoint x="1100" y="600" />
-              <mxPoint x="1100" y="280" />
-              <mxPoint x="940" y="280" />
-            </Array>
-          </mxGeometry>
+        <mxCell id="r6" value="calls" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.75;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="admin_controller" target="news_processor_class">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         
-        <mxCell id="r7" value="queries" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.75;entryX=1;entryY=0.25;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="flask_routes" target="sqlalchemy_orm">
+        <mxCell id="r7" value="queries" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.85;entryX=1;entryY=0.25;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="admin_controller" target="sqlalchemy_orm">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1100" y="515" />
-              <mxPoint x="1100" y="325" />
+              <mxPoint x="1460" y="789" />
+              <mxPoint x="960" y="789" />
+              <mxPoint x="960" y="325" />
             </Array>
           </mxGeometry>
         </mxCell>
         
         <mxCell id="r8" value="invokes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="ai_service_class" target="boto3_client">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1280" y="600" />
-              <mxPoint x="1240" y="600" />
-            </Array>
-          </mxGeometry>
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         
         <mxCell id="r9" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=1;strokeColor=#666666;dashed=1;endArrow=open;endFill=0;fontSize=10;" edge="1" parent="1" source="rss_fetcher_class" target="feedparser_lib">
@@ -122,12 +178,13 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         
-        <mxCell id="legend" value="&lt;b&gt;Legend&lt;/b&gt;&lt;hr&gt;Entity: Database models&lt;br&gt;Service: Business logic&lt;br&gt;Controller: HTTP endpoints&lt;br&gt;Framework: ORM layer&lt;br&gt;External: Third-party libs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#37474F;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
-          <mxGeometry x="360" y="440" width="200" height="140" as="geometry" />
+        <!-- Legend -->
+        <mxCell id="legend" value="&lt;b&gt;Legend&lt;/b&gt;&lt;hr&gt;Entity: Database models (blue)&lt;br&gt;Service: Business logic (yellow)&lt;br&gt;Controller: HTTP endpoints (green)&lt;br&gt;Auth: Okta integration (purple)&lt;br&gt;Framework: ORM layer&lt;br&gt;External: Third-party libs (red)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#37474F;align=left;verticalAlign=top;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="720" y="440" width="240" height="160" as="geometry" />
         </mxCell>
         
-        <mxCell id="note1" value="Key Flow:&lt;br&gt;1. Flask routes trigger NewsProcessor&lt;br&gt;2. NewsProcessor uses RSSFetcher&lt;br&gt;3. AIService analyzes via Bedrock&lt;br&gt;4. Articles saved if relevancy ≥ 75%&lt;br&gt;5. SQLAlchemy persists to SQLite" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;align=left;verticalAlign=top;fontSize=10;fontFamily=Courier New;" vertex="1" parent="1">
-          <mxGeometry x="360" y="620" width="280" height="120" as="geometry" />
+        <mxCell id="note1" value="Auth Flow:&lt;br&gt;1. User hits /login → redirect to Okta&lt;br&gt;2. Okta authenticates → OIDC callback&lt;br&gt;3. OktaOIDCMiddleware validates token&lt;br&gt;4. RoleGuard extracts role from claims&lt;br&gt;5. admin role → Admin Console routes&lt;br&gt;6. user role → Dashboard routes only&lt;br&gt;7. Unauthorized → 403 page" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;align=left;verticalAlign=top;fontSize=10;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="720" y="640" width="300" height="140" as="geometry" />
         </mxCell>
         
       </root>
